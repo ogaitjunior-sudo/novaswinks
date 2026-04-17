@@ -3,7 +3,7 @@ import {
   PartyPopper, Sparkles, Heart, Star, Zap, Crown, Smile, Flame, Wand2,
   Volume2, VolumeX, RotateCw, Eraser, Shuffle, Trophy,
   Rainbow, DollarSign, Droplets, Snowflake, Bell, CloudLightning,
-  Rocket, Drum, Sparkle, Hand,
+  Rocket, Drum, Sparkle, Hand, Download, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CelebrationCard } from "@/components/CelebrationCard";
@@ -13,6 +13,7 @@ import {
   triggerEmojiConfetti, clearConfetti, playSoundFor, rainbowConfetti, laserConfetti,
   fwClassic, fwMega, fwRain, fwSpiral, fwHeart, fwPulse, fwRgb, fwFinale, fwCrackle,
 } from "@/lib/celebrations";
+import { downloadTransparentEffectVideo } from "@/lib/effect-video";
 import { setMuted } from "@/lib/sounds";
 import { toast } from "sonner";
 
@@ -64,6 +65,8 @@ const Index = () => {
   const [runId, setRunId] = useState(0);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [muted, setMutedState] = useState(false);
+  const [exporting, setExporting] = useState<CelebrationId | "all" | null>(null);
+  const [exportProgress, setExportProgress] = useState(0);
   const lastRef = useRef<CelebrationId | null>(null);
 
   const totalClicks = useMemo(
@@ -159,6 +162,51 @@ const Index = () => {
   };
 
   const activeMeta = CELEBRATIONS.find((c) => c.id === active);
+  const exportError = (error: unknown) =>
+    error instanceof Error ? error.message : "Nao foi possivel gerar o video WebM.";
+
+  const downloadActiveWebm = async () => {
+    if (!activeMeta) {
+      toast("Escolha um efeito primeiro!");
+      return;
+    }
+
+    if (exporting) return;
+
+    setExporting(activeMeta.id);
+    try {
+      await downloadTransparentEffectVideo(activeMeta.id, activeMeta.name);
+      toast.success(`WebM sem fundo baixado: ${activeMeta.name}`);
+    } catch (error) {
+      toast.error(exportError(error));
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const downloadAllWebm = async () => {
+    if (exporting) return;
+
+    setExporting("all");
+    setExportProgress(0);
+    toast("Gerando WebM sem fundo de todos os efeitos...");
+
+    try {
+      for (let index = 0; index < CELEBRATIONS.length; index += 1) {
+        const celebration = CELEBRATIONS[index];
+        setExportProgress(index + 1);
+        await downloadTransparentEffectVideo(celebration.id, celebration.name);
+        await new Promise((resolve) => window.setTimeout(resolve, 200));
+      }
+
+      toast.success("Todos os downloads WebM foram iniciados.");
+    } catch (error) {
+      toast.error(exportError(error));
+    } finally {
+      setExporting(null);
+      setExportProgress(0);
+    }
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -177,7 +225,10 @@ const Index = () => {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero shadow-glow">
             <PartyPopper className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">Winks</span>
+          <div className="leading-tight">
+            <span className="block text-xs font-semibold text-muted-foreground">Projeto</span>
+            <span className="block text-lg font-bold">Winks Gabriel Mendes</span>
+          </div>
         </div>
         <Button variant="outline" size="sm" onClick={toggleMute} className="glass">
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -215,6 +266,22 @@ const Index = () => {
             <Shuffle className="mr-2 h-4 w-4" />
             Surpresa Aleatória
           </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={downloadAllWebm}
+            disabled={exporting !== null}
+            className="h-12 px-6 font-semibold"
+          >
+            {exporting === "all" ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {exporting === "all"
+              ? `Gerando ${exportProgress}/${CELEBRATIONS.length}`
+              : "Baixar todos WebM"}
+          </Button>
         </div>
 
         {/* Demo area */}
@@ -242,6 +309,20 @@ const Index = () => {
               </Button>
               <Button size="sm" variant="outline" onClick={random} className="glass">
                 <Shuffle className="mr-1.5 h-4 w-4" /> Random
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={downloadActiveWebm}
+                disabled={!activeMeta || exporting !== null}
+                className="glass"
+              >
+                {exporting && exporting !== "all" ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 h-4 w-4" />
+                )}
+                WebM sem fundo
               </Button>
             </div>
             {totalClicks > 0 && (
