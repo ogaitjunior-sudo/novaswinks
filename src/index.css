@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Celebration Design System - vibrant, festive, premium */
+
+@layer base {
+  :root {
+    --background: 250 40% 6%;
+    --foreground: 40 60% 97%;
+
+    --card: 250 35% 10%;
+    --card-foreground: 40 60% 97%;
+
+    --popover: 250 35% 10%;
+    --popover-foreground: 40 60% 97%;
+
+    --primary: 320 95% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 290 100% 70%;
+
+    --secondary: 45 100% 60%;
+    --secondary-foreground: 250 40% 6%;
+
+    --muted: 250 25% 16%;
+    --muted-foreground: 250 15% 70%;
+
+    --accent: 180 95% 55%;
+    --accent-foreground: 250 40% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 250 30% 20%;
+    --input: 250 30% 18%;
+    --ring: 320 95% 62%;
+
+    --radius: 1rem;
+
+    /* Festive palette */
+    --festive-pink: 330 100% 65%;
+    --festive-purple: 280 95% 65%;
+    --festive-blue: 220 95% 65%;
+    --festive-cyan: 185 95% 55%;
+    --festive-yellow: 48 100% 60%;
+    --festive-orange: 22 100% 60%;
+    --festive-green: 145 75% 55%;
+    --festive-red: 350 90% 60%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(320 95% 62%) 0%, hsl(280 95% 65%) 50%, hsl(220 95% 65%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 60%) 0%, hsl(22 100% 60%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(185 95% 55%) 0%, hsl(280 95% 65%) 100%);
+    --gradient-celebration: conic-gradient(from 180deg at 50% 50%, hsl(320 95% 62%), hsl(280 95% 65%), hsl(220 95% 65%), hsl(185 95% 55%), hsl(48 100% 60%), hsl(22 100% 60%), hsl(320 95% 62%));
+    --gradient-card: linear-gradient(145deg, hsl(250 35% 14% / 0.8), hsl(250 35% 8% / 0.6));
+    --gradient-bg: radial-gradient(ellipse at top left, hsl(280 80% 20% / 0.5), transparent 50%),
+                   radial-gradient(ellipse at top right, hsl(220 80% 20% / 0.5), transparent 50%),
+                   radial-gradient(ellipse at bottom, hsl(320 80% 20% / 0.4), transparent 60%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(320 95% 62% / 0.4);
+    --shadow-card: 0 10px 40px -10px hsl(250 50% 2% / 0.6);
+    --shadow-elegant: 0 20px 60px -15px hsl(320 95% 62% / 0.35);
+    --shadow-neon: 0 0 20px hsl(185 95% 55% / 0.6), 0 0 40px hsl(280 95% 65% / 0.4);
+
+    /* Transitions */
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    @apply min-h-screen;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-image: var(--gradient-bg);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .text-gradient-hero {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .bg-gradient-hero { background: var(--gradient-hero); }
+  .bg-gradient-gold { background: var(--gradient-gold); }
+  .bg-gradient-neon { background: var(--gradient-neon); }
+  .bg-gradient-celebration { background: var(--gradient-celebration); }
+
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .shadow-neon { box-shadow: var(--shadow-neon); }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  .animate-float-slow {
+    animation: float 9s ease-in-out infinite;
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2.5s ease-in-out infinite;
+  }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+  .animate-spin-slow {
+    animation: spin 12s linear infinite;
+  }
+  .animate-bounce-in {
+    animation: bounce-in 0.5s var(--ease-bounce);
+  }
+  .animate-rise {
+    animation: rise linear forwards;
+  }
+  .animate-fall {
+    animation: fall linear forwards;
+  }
+  .animate-burst {
+    animation: burst 1s var(--ease-bounce) forwards;
+  }
+  .animate-twinkle {
+    animation: twinkle 1.5s ease-in-out infinite;
+  }
+  .animate-flash {
+    animation: flash 0.6s ease-out;
+  }
+  .hover-lift {
+    transition: transform 0.3s var(--ease-bounce), box-shadow 0.3s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 50px hsl(var(--primary) / 0.7); }
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes rise {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-110vh) translateX(var(--drift, 0px)) rotate(var(--rot, 360deg)); opacity: 0; }
+}
+@keyframes fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes burst {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px))) scale(1.4) rotate(var(--rot, 360deg)); opacity: 0; }
+}
+@keyframes twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+  50% { transform: scale(1.4) rotate(180deg); opacity: 0.6; filter: brightness(1.6); }
+}
+@keyframes flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
