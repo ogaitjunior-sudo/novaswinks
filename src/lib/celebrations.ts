@@ -3,6 +3,17 @@ import { sounds } from "./sounds";
 
 export type CelebrationId =
   | "celebration"
+  | "bingo"
+  | "bingo!"
+  | "flowers"
+  | "thumbs-up"
+  | "thumbs up"
+  | "leprechaun"
+  | "countdown"
+  | "trivia-time"
+  | "trivia time"
+  | "happy-birthday"
+  | "happy birthday"
   | "fireworks"
   | "balloons"
   | "glitter"
@@ -23,6 +34,12 @@ export type CelebrationId =
   | "drumroll"
   | "magic"
   | "applause"
+  | "confetti-cannon"
+  | "starburst"
+  | "heart-rain"
+  | "neon-rings"
+  | "gold-comet"
+  | "bubble-pop"
   // Fireworks variations
   | "fw-classic"
   | "fw-mega"
@@ -203,10 +220,33 @@ export const fwCrackle = () => {
 
 export const clearConfetti = () => confetti.reset();
 
+const normalizeCelebrationKey = (id: string) => {
+  const key = id.trim().toLowerCase();
+  switch (key) {
+    case "bingo!":
+      return "bingo";
+    case "thumbs up":
+      return "thumbs-up";
+    case "trivia time":
+      return "trivia-time";
+    case "happy birthday":
+      return "happy-birthday";
+    default:
+      return key;
+  }
+};
+
 // Sound mapping
 export const playSoundFor = (id: CelebrationId) => {
-  switch (id) {
+  switch (normalizeCelebrationKey(id)) {
     case "celebration": sounds.partyHorn(); break;
+    case "bingo": sounds.partyHorn(); sounds.fireworks(); sounds.cash(); sounds.thunder(); break;
+    case "flowers": sounds.magic(); sounds.sparkle(); break;
+    case "thumbs-up": sounds.emoji(); sounds.applause(); break;
+    case "leprechaun": sounds.cash(); sounds.rainbow(); sounds.golden(); break;
+    case "countdown": sounds.drumroll(); setTimeout(() => sounds.thunder(), 1450); break;
+    case "trivia-time": sounds.neon(); sounds.magic(); break;
+    case "happy-birthday": sounds.happy(); sounds.sparkle(); setTimeout(() => sounds.fireworks(), 180); break;
     case "fireworks": sounds.fireworks(); break;
     case "balloons": sounds.pop(); break;
     case "glitter": sounds.sparkle(); break;

@@ -26,6 +26,25 @@ const NEON_COLORS = ["#22d3ee", "#a855f7", "#ff4ecd", "#ffffff"];
 const CASH_COLORS = ["#22c55e", "#86efac", "#16a34a", "#fbbf24", "#ffffff"];
 const SNOW_COLORS = ["#ffffff", "#bfdbfe", "#67e8f9", "#93c5fd"];
 const HEART_COLORS = ["#ff4ecd", "#ef4444", "#f43f5e", "#ec4899", "#ffffff"];
+const PARTY_COLORS = ["#ff4ecd", "#a855f7", "#22d3ee", "#fbbf24", "#fb923c", "#ffffff"];
+const LUCKY_COLORS = ["#22c55e", "#86efac", "#fbbf24", "#fde68a", "#ffffff"];
+const FLOWER_COLORS = ["#f9a8d4", "#f472b6", "#fbcfe8", "#fef3c7", "#ffffff"];
+
+const normalizeCelebrationKey = (id: string) => {
+  const key = id.trim().toLowerCase();
+  switch (key) {
+    case "bingo!":
+      return "bingo";
+    case "thumbs up":
+      return "thumbs-up";
+    case "trivia time":
+      return "trivia-time";
+    case "happy birthday":
+      return "happy-birthday";
+    default:
+      return key;
+  }
+};
 
 
 const seedFromText = (text: string) => {
@@ -555,15 +574,697 @@ const drawHeartFirework = (ctx: CanvasRenderingContext2D, size: number, t: numbe
   }
 };
 
+const drawGlowCloud = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string, alpha = 1) => {
+  ctx.save();
+  const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(0.45, color);
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+};
+
+const drawShockwave = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string, alpha = 1) => {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(3, radius * 0.06);
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, TAU);
+  ctx.stroke();
+  ctx.lineWidth = Math.max(1.5, radius * 0.022);
+  ctx.globalAlpha = alpha * 0.7;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 1.22, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const drawLensFlare = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, color: string, alpha = 1) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, scale * 6);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-scale * 80, 0);
+  ctx.lineTo(scale * 80, 0);
+  ctx.moveTo(0, -scale * 52);
+  ctx.lineTo(0, scale * 52);
+  ctx.stroke();
+  drawGlowCloud(ctx, 0, 0, scale * 56, color, alpha * 0.32);
+  ctx.restore();
+};
+
+const drawLightStreaks = (
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  t: number,
+  colors: string[],
+  count = 8,
+  direction = 1,
+) => {
+  ctx.save();
+  ctx.lineCap = "round";
+  for (let i = 0; i < count; i += 1) {
+    const progress = cycle(t * (0.75 + i * 0.04) + i * 0.13);
+    const x = size * (-0.15 + progress * 1.35);
+    const y = size * (0.12 + i * 0.08);
+    ctx.strokeStyle = colors[i % colors.length];
+    ctx.globalAlpha = 0.2 + (1 - progress) * 0.35;
+    ctx.lineWidth = 2 + (i % 3);
+    ctx.beginPath();
+    ctx.moveTo(x - size * 0.14, y - direction * size * 0.08);
+    ctx.lineTo(x + size * 0.16, y + direction * size * 0.11);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, alpha = 1, rotation = 0) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  drawGlowCloud(ctx, 0, 0, 22, "#fbbf24", 0.24);
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 18, 18, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = "#fde68a";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(-4, -4, 6, 4, -0.5, 0, TAU);
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 18px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("$", 0, 1);
+  ctx.restore();
+};
+
+const drawBingoBallIcon = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  color: string,
+  digit: string,
+  alpha = 1,
+) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  drawGlowCloud(ctx, 0, 0, 28, color, 0.26);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(0, 0, 20, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.beginPath();
+  ctx.arc(-6, -7, 8, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(0, 0, 9, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 12px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(digit, 0, 0.8);
+  ctx.restore();
+};
+
+const drawPartyHorn = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, alpha = 1, rotation = 0) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath();
+  ctx.moveTo(-36, -8);
+  ctx.lineTo(32, 0);
+  ctx.lineTo(-36, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#a855f7";
+  roundRect(ctx, -52, -10, 18, 20, 7);
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-12, -6);
+  ctx.lineTo(8, -2);
+  ctx.moveTo(-6, 5);
+  ctx.lineTo(18, 4);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const drawStreamer = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  length: number,
+  color: string,
+  alpha = 1,
+  rotation = 0,
+  wave = 1,
+) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(5, length * 0.045);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(length * 0.18, -16 * wave, length * 0.42, 24 * wave, length * 0.68, -18 * wave);
+  ctx.bezierCurveTo(length * 0.82, -30 * wave, length * 0.96, 16 * wave, length * 1.08, -8 * wave);
+  ctx.stroke();
+  ctx.globalAlpha = alpha * 0.24;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = Math.max(2, length * 0.016);
+  ctx.beginPath();
+  ctx.moveTo(length * 0.08, -2);
+  ctx.bezierCurveTo(length * 0.22, -10 * wave, length * 0.48, 16 * wave, length * 0.9, -8 * wave);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const drawPetal = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, color: string, alpha = 1, rotation = 0) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  drawGlowCloud(ctx, 0, 0, 18, color, 0.18);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.bezierCurveTo(16, -18, 18, 4, 0, 22);
+  ctx.bezierCurveTo(-18, 4, -16, -18, 0, -18);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = alpha * 0.4;
+  ctx.beginPath();
+  ctx.ellipse(-4, -6, 5, 10, -0.5, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+};
+
+const drawShamrock = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, alpha = 1, rotation = 0) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  ["-12,0", "12,0", "0,-12", "0,12"].forEach((pair) => {
+    const [dx, dy] = pair.split(",").map(Number);
+    drawHeart(ctx, dx, dy, 22, "#22c55e", alpha);
+  });
+  ctx.strokeStyle = "#86efac";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, 12);
+  ctx.quadraticCurveTo(14, 28, 8, 44);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const drawPotOfGold = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, alpha = 1) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "#fde68a";
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.arc(i * 11, -18 - Math.abs(i % 2) * 3, 10, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#111827";
+  roundRect(ctx, -42, -16, 84, 42, 14);
+  ctx.fill();
+  ctx.strokeStyle = "#fbbf24";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.restore();
+};
+
+const drawThumb = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, color: string, alpha = 1, rotation = 0) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  drawGlowCloud(ctx, 0, 0, 42, color, 0.22);
+  ctx.fillStyle = color;
+  roundRect(ctx, -20, -18, 34, 48, 14);
+  ctx.fill();
+  roundRect(ctx, -34, -6, 18, 36, 12);
+  ctx.fill();
+  roundRect(ctx, -8, -36, 18, 28, 10);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = alpha * 0.28;
+  roundRect(ctx, -10, -12, 12, 28, 8);
+  ctx.fill();
+  ctx.restore();
+};
+
+const drawQuestionMark = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string, alpha = 1) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alpha;
+  ctx.font = `900 ${size}px Impact, "Arial Black", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(3, size * 0.08);
+  ctx.strokeText("?", 0, 0);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("?", 0, 0);
+  ctx.restore();
+};
+
+const drawBirthdayCandle = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, color: string, alpha = 1) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  roundRect(ctx, -5, -26, 10, 36, 4);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(-1, -26, 2, 36);
+  drawGlowCloud(ctx, 0, -34, 16, "#fb923c", 0.3);
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath();
+  ctx.moveTo(0, -44);
+  ctx.quadraticCurveTo(8, -36, 0, -28);
+  ctx.quadraticCurveTo(-8, -36, 0, -44);
+  ctx.fill();
+  ctx.restore();
+};
+
+const drawBirthdayCake = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, alpha = 1) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = alpha;
+  drawGlowCloud(ctx, 0, -10, 82, "#f472b6", 0.18);
+  ctx.fillStyle = "#ffffff";
+  roundRect(ctx, -86, 34, 172, 12, 6);
+  ctx.fill();
+  ctx.fillStyle = "#ec4899";
+  roundRect(ctx, -66, -4, 132, 42, 14);
+  ctx.fill();
+  ctx.fillStyle = "#fef3c7";
+  roundRect(ctx, -74, -26, 148, 24, 12);
+  ctx.fill();
+  ctx.fillStyle = "#f9a8d4";
+  roundRect(ctx, -42, -54, 84, 30, 10);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  roundRect(ctx, -48, -66, 96, 18, 9);
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = alpha * 0.45;
+  for (let i = -4; i <= 4; i += 2) {
+    ctx.beginPath();
+    ctx.arc(i * 15, 12, 5, 0, TAU);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+const drawSpotlightCone = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: string,
+  alpha = 1,
+  rotation = 0,
+) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.globalAlpha = alpha;
+  const gradient = ctx.createLinearGradient(0, 0, 0, -height);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.12, 0);
+  ctx.lineTo(width * 0.12, 0);
+  ctx.lineTo(width, -height);
+  ctx.lineTo(-width, -height);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+};
+
+const drawImpactText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+  fill: string,
+  stroke: string,
+  alpha = 1,
+) => {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `900 ${size}px Impact, "Arial Black", sans-serif`;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = Math.max(5, size * 0.12);
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+};
+
+const drawDustField = (
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  rng: () => number,
+  colors: string[],
+  t: number,
+  count: number,
+) => {
+  for (let i = 0; i < count; i += 1) {
+    const phase = rng();
+    const x = size * cycle(phase + t * (0.08 + rng() * 0.08));
+    const y = size * (0.08 + rng() * 0.84);
+    const radius = 2 + rng() * 5;
+    drawGlowCloud(ctx, x, y, radius * 2.4, pick(colors, rng), 0.07 + (1 - phase) * 0.08);
+    if (i % 7 === 0) drawSpark(ctx, x, y, radius * 1.5, "#ffffff", 0.55);
+  }
+};
+
+const renderCelebrationScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  const pulse = 1 + Math.sin(t * TAU * 2.2) * 0.05;
+  drawGlowCloud(ctx, size * 0.5, size * 0.48, size * 0.3, "#a855f7", 0.16);
+  drawGlowCloud(ctx, size * 0.5, size * 0.44, size * 0.16, "#fbbf24", 0.08);
+  drawFalling(ctx, size, rng, PARTY_COLORS, t, 54, "rect");
+  drawBurst(ctx, size, rng, PARTY_COLORS, cycle(t * 1.08), size * 0.5, size * 0.42, 54, ["rect", "star"]);
+  drawShockwave(ctx, size * 0.5, size * 0.5, size * (0.12 + cycle(t * 0.9) * 0.08), "#ffffff", 0.14);
+  for (let i = 0; i < 4; i += 1) {
+    const phase = cycle(t * 0.38 + i * 0.16);
+    const x = size * (0.18 + i * 0.2);
+    const y = size * (0.15 + (i % 2) * 0.08);
+    drawStreamer(
+      ctx,
+      x,
+      y,
+      size * (0.17 + (i % 2) * 0.03),
+      PARTY_COLORS[i % PARTY_COLORS.length],
+      0.72,
+      -1.05 + phase * 0.38,
+      i % 2 === 0 ? 1 : -1,
+    );
+  }
+  drawImpactText(ctx, "YAY!", size * 0.5, size * 0.48, size * 0.2 * pulse, "#fff7d6", "#7c3aed", 0.98);
+  const hornPulse = 1 + Math.sin(t * TAU * 2.4) * 0.06;
+  drawPartyHorn(ctx, size * 0.26, size * 0.76, hornPulse * 1.15, 0.98, -0.26);
+  drawPartyHorn(ctx, size * 0.74, size * 0.76, hornPulse * 1.15, 0.98, Math.PI + 0.26);
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (i / 8) * TAU + t * 0.7;
+    drawSpark(
+      ctx,
+      size * 0.5 + Math.cos(angle) * size * 0.19,
+      size * 0.48 + Math.sin(angle) * size * 0.12,
+      8 + (i % 2) * 3,
+      i % 2 === 0 ? "#ffffff" : "#fbbf24",
+      0.5,
+    );
+  }
+  drawLensFlare(ctx, size * 0.5, size * 0.48, 0.56 + Math.sin(t * TAU) * 0.06, "#ffffff", 0.34);
+};
+
+const renderBingoScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  const impact = clamp01(t * 2.4);
+  const shake = (1 - impact) * size * 0.045 + Math.max(0, Math.sin(t * TAU * 6)) * size * 0.012;
+  const jackpotColors = ["#fde68a", "#fbbf24", "#f59e0b", "#ef4444", "#ffffff"];
+  ctx.save();
+  ctx.translate(Math.sin(t * TAU * 23) * shake, Math.cos(t * TAU * 17) * shake * 0.65);
+  drawGlowCloud(ctx, size * 0.5, size * 0.5, size * 0.34, "#f59e0b", 0.18);
+  drawGlowCloud(ctx, size * 0.5, size * 0.46, size * 0.16, "#ef4444", 0.11);
+  drawShockwave(ctx, size * 0.5, size * 0.52, size * (0.12 + easeOut(impact) * 0.28), "#fde68a", 0.38);
+  drawShockwave(ctx, size * 0.5, size * 0.52, size * (0.18 + easeOut(impact) * 0.2), "#ffffff", 0.16);
+  drawBurst(ctx, size, rng, jackpotColors, impact, size * 0.5, size * 0.54, 72, ["circle", "spark"]);
+  drawImpactText(ctx, "BINGO!", size * 0.5, size * 0.46, size * (0.22 + impact * 0.03), "#fff4c4", "#b45309", 0.98);
+  const heroBalls = [
+    { angle: -2.15, radius: 0.18, scale: 1.08, color: "#ef4444", label: "7" },
+    { angle: -0.9, radius: 0.23, scale: 0.98, color: "#a855f7", label: "3" },
+    { angle: 0.12, radius: 0.25, scale: 1.02, color: "#22d3ee", label: "8" },
+    { angle: 1.24, radius: 0.18, scale: 1.16, color: "#fbbf24", label: "9" },
+    { angle: 2.45, radius: 0.2, scale: 0.94, color: "#3b82f6", label: "1" },
+  ];
+  heroBalls.forEach((ball, index) => {
+    const distance = size * (0.08 + easeOut(impact) * ball.radius);
+    const bx = size * 0.5 + Math.cos(ball.angle + t * 0.12) * distance;
+    const by = size * 0.54 + Math.sin(ball.angle + t * 0.12) * distance - easeOut(impact) * size * 0.08;
+    drawBingoBallIcon(ctx, bx, by, ball.scale, ball.color, ball.label, 0.98);
+    drawSpark(ctx, bx + (index % 2 === 0 ? -12 : 12), by - 10, 9 + (index % 2) * 2, "#ffffff", 0.62);
+  });
+  drawLensFlare(ctx, size * 0.5, size * 0.5, 0.88, "#ffffff", 0.6);
+  ctx.restore();
+};
+
+const renderFlowersScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  drawGlowCloud(ctx, size * 0.5, size * 0.46, size * 0.28, "#f9a8d4", 0.14);
+  drawGlowCloud(ctx, size * 0.5, size * 0.48, size * 0.14, "#fef3c7", 0.12);
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (i / 8) * TAU + t * 0.18;
+    const px = size * 0.5 + Math.cos(angle) * size * 0.11;
+    const py = size * 0.48 + Math.sin(angle) * size * 0.09;
+    drawPetal(ctx, px, py, 1.22 + Math.sin(t * TAU * 1.8 + i) * 0.05, FLOWER_COLORS[i % FLOWER_COLORS.length], 0.88, angle);
+  }
+  drawGlowCloud(ctx, size * 0.5, size * 0.48, size * 0.06, "#ffffff", 0.26);
+  for (let i = 0; i < 12; i += 1) {
+    const phase = cycle(t * 0.2 + i * 0.08);
+    const x = size * (-0.1 + phase * 1.2);
+    const y = size * (0.18 + (i % 4) * 0.12 + Math.sin(phase * TAU * 1.4 + i) * 0.03);
+    drawPetal(ctx, x, y, 0.5 + (i % 3) * 0.08, FLOWER_COLORS[(i + 2) % FLOWER_COLORS.length], 0.34, phase * TAU);
+  }
+  for (let i = 0; i < 6; i += 1) {
+    const phase = cycle(t * 0.26 + i * 0.14);
+    const x = size * (-0.12 + phase * 1.24);
+    const y = size * (0.6 + ((i % 3) - 1) * 0.08);
+    drawPetal(ctx, x, y, 1.02 + (i % 2) * 0.18, FLOWER_COLORS[i % FLOWER_COLORS.length], 0.52, phase * TAU * 0.8);
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (i / 8) * TAU + t * 0.7;
+    drawSpark(
+      ctx,
+      size * 0.5 + Math.cos(angle) * size * 0.18,
+      size * 0.48 + Math.sin(angle) * size * 0.14,
+      6 + (i % 2) * 2,
+      "#ffffff",
+      0.42,
+    );
+  }
+  drawLensFlare(ctx, size * 0.5, size * 0.44, 0.62, "#ffffff", 0.28);
+};
+
+const renderThumbsUpScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  const pop = easeOut(clamp01(t * 1.8));
+  drawGlowCloud(ctx, size * 0.5, size * 0.5, size * 0.26, "#3b82f6", 0.16);
+  drawGlowCloud(ctx, size * 0.5, size * 0.46, size * 0.14, "#a855f7", 0.08);
+  drawShockwave(ctx, size * 0.5, size * 0.56, size * (0.1 + pop * 0.14), "#ffffff", 0.16);
+  drawBurst(ctx, size, rng, ["#3b82f6", "#22d3ee", "#a855f7", "#ffffff"], cycle(t * 1.18), size * 0.5, size * 0.56, 34, ["circle", "spark"]);
+  const mainScale = 1 + pop * 0.38 + Math.sin(t * TAU * 3) * 0.04;
+  drawThumb(ctx, size * 0.5, size * 0.56, mainScale * 1.7, "#60a5fa", 0.98, Math.sin(t * TAU) * 0.05);
+  drawThumb(ctx, size * 0.3, size * 0.64, 0.78, "#c084fc", 0.58, -0.18);
+  drawThumb(ctx, size * 0.7, size * 0.64, 0.78, "#22d3ee", 0.58, 0.18);
+  drawImpactText(ctx, "+1", size * 0.5, size * 0.8, size * 0.11, "#ffffff", "#7c3aed", 0.88);
+  for (let i = 0; i < 6; i += 1) {
+    const angle = (i / 6) * TAU + t * 0.72;
+    drawSpark(
+      ctx,
+      size * 0.5 + Math.cos(angle) * size * 0.18,
+      size * 0.56 + Math.sin(angle) * size * 0.14,
+      8,
+      i % 2 === 0 ? "#22d3ee" : "#ffffff",
+      0.5,
+    );
+  }
+};
+
+const renderLeprechaunScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  drawGlowCloud(ctx, size * 0.5, size * 0.52, size * 0.3, "#22c55e", 0.16);
+  drawGlowCloud(ctx, size * 0.5, size * 0.6, size * 0.18, "#fbbf24", 0.12);
+  drawRainbow(ctx, size, t * 0.42);
+  drawPotOfGold(ctx, size * 0.5, size * 0.76, 1.24 + Math.sin(t * TAU * 1.4) * 0.04, 0.98);
+  drawBurst(ctx, size, rng, LUCKY_COLORS, cycle(t * 1.08), size * 0.5, size * 0.66, 42, ["circle", "spark"]);
+  for (let i = 0; i < 10; i += 1) {
+    const phase = cycle(t * 0.82 + i * 0.09);
+    const arc = Math.sin(phase * Math.PI);
+    const x = size * 0.5 + Math.cos(-1.08 + (i % 5) * 0.54) * arc * size * 0.18;
+    const y = size * 0.74 - arc * size * (0.16 + (i % 2) * 0.04) + phase * size * 0.03;
+    drawCoin(ctx, x, y, 0.48 + (i % 2) * 0.08, 0.72 + arc * 0.18, phase * TAU * 1.5);
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const phase = cycle(t * 0.24 + i * 0.11);
+    const x = size * (0.18 + (i % 4) * 0.18 + Math.sin(phase * TAU) * 0.03);
+    const y = size * (0.22 + (i % 2) * 0.14 + Math.cos(phase * TAU) * 0.04);
+    drawShamrock(ctx, x, y, 0.34 + (i % 3) * 0.07, 0.48, phase * TAU * 0.7);
+  }
+  for (let i = 0; i < 3; i += 1) {
+    const phase = cycle(t * 0.18 + i * 0.26);
+    const x = size * (-0.08 + phase * 1.22);
+    const y = size * (0.3 + i * 0.18);
+    drawShamrock(ctx, x, y, 0.68 + (i % 2) * 0.12, 0.34, phase * TAU * 0.5);
+  }
+  drawLensFlare(ctx, size * 0.5, size * 0.6, 0.68, "#fde68a", 0.28);
+};
+
+const renderCountdownScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  const phase = clamp01(t) * 3;
+  const stage = Math.min(2, Math.floor(phase));
+  const local = phase - stage;
+  const digit = ["3", "2", "1"][stage];
+  const stageColors = [
+    ["#a855f7", "#22d3ee", "#ffffff"],
+    ["#ef4444", "#fb923c", "#ffffff"],
+    ["#fbbf24", "#ffffff", "#ef4444"],
+  ] as const;
+  const activeColors = stageColors[stage];
+  const pulse = 0.9 + easeOut(clamp01(local * 1.1)) * 0.32;
+  const shake = size * (0.012 + stage * 0.006) * (1 - clamp01(local * 0.8));
+  ctx.save();
+  ctx.translate(Math.sin(t * TAU * 19) * shake, Math.cos(t * TAU * 13) * shake);
+  drawGlowCloud(ctx, size * 0.5, size * 0.48, size * 0.28, activeColors[0], 0.16);
+  drawShockwave(ctx, size * 0.5, size * 0.5, size * (0.1 + local * 0.18), activeColors[2], 0.36);
+  drawBurst(ctx, size, rng, [...activeColors], clamp01(local * 1.08), size * 0.5, size * 0.52, 26 + stage * 12, ["spark", "circle"]);
+  drawImpactText(ctx, digit, size * 0.5, size * 0.5, size * 0.34 * pulse, "#ffffff", stage === 2 ? "#b45309" : activeColors[0], 0.96);
+  for (let i = 0; i < 6; i += 1) {
+    const angle = (i / 6) * TAU + local * 0.8;
+    drawSpark(
+      ctx,
+      size * 0.5 + Math.cos(angle) * size * 0.2,
+      size * 0.5 + Math.sin(angle) * size * 0.14,
+      8,
+      activeColors[i % activeColors.length],
+      0.44,
+    );
+  }
+  if (stage === 2) {
+    drawLensFlare(ctx, size * 0.5, size * 0.5, 0.92 + local * 0.24, "#ffffff", 0.72);
+    drawShockwave(ctx, size * 0.5, size * 0.5, size * (0.2 + local * 0.22), "#fde68a", 0.24);
+    drawBurst(ctx, size, rng, ["#ffffff", "#fbbf24", "#fde68a", "#ef4444"], clamp01(local * 1.8), size * 0.5, size * 0.52, 118, ["spark", "circle", "rect"]);
+  }
+  ctx.restore();
+};
+
+const renderTriviaTimeScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  drawGlowCloud(ctx, size * 0.5, size * 0.45, size * 0.32, "#22d3ee", 0.12);
+  drawGlowCloud(ctx, size * 0.5, size * 0.5, size * 0.16, "#a855f7", 0.1);
+  drawSpotlightCone(ctx, size * 0.2, size * 0.98, size * 0.16, size * 0.6, "#22d3ee", 0.16, -0.24);
+  drawSpotlightCone(ctx, size * 0.8, size * 0.98, size * 0.16, size * 0.6, "#a855f7", 0.16, 0.24);
+  ctx.save();
+  ctx.fillStyle = "rgba(12, 18, 42, 0.58)";
+  ctx.strokeStyle = "#22d3ee";
+  ctx.lineWidth = 4;
+  roundRect(ctx, size * 0.2, size * 0.24, size * 0.6, size * 0.38, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  for (let i = 0; i < 3; i += 1) {
+    const phase = cycle(t * 0.7 + i * 0.22);
+    const qx = size * (0.28 + i * 0.22);
+    const qy = size * (0.3 + Math.sin(phase * TAU) * 0.06 + (i % 2) * 0.12);
+    drawQuestionMark(ctx, qx, qy, size * (0.11 + i * 0.015), i % 2 === 0 ? "#22d3ee" : "#a855f7", 0.38 + (1 - phase) * 0.24);
+  }
+  drawQuestionMark(ctx, size * 0.5, size * 0.45, size * 0.28, "#ffffff", 0.94);
+  for (let i = 0; i < 8; i += 1) {
+    drawGlowCloud(ctx, size * (0.3 + i * 0.05), size * 0.24, size * 0.011, i % 2 === 0 ? "#fbbf24" : "#ffffff", 0.48);
+  }
+  for (let i = 0; i < 6; i += 1) {
+    const angle = (i / 6) * TAU + t * 0.6;
+    drawSpark(
+      ctx,
+      size * 0.5 + Math.cos(angle) * size * 0.16,
+      size * 0.46 + Math.sin(angle) * size * 0.18,
+      7,
+      i % 2 === 0 ? "#22d3ee" : "#ffffff",
+      0.4,
+    );
+  }
+};
+
+const renderHappyBirthdayScene = (ctx: CanvasRenderingContext2D, size: number, t: number, rng: () => number) => {
+  drawGlowCloud(ctx, size * 0.5, size * 0.48, size * 0.34, "#f472b6", 0.14);
+  drawGlowCloud(ctx, size * 0.5, size * 0.52, size * 0.24, "#fbbf24", 0.12);
+  drawFalling(ctx, size, rng, PARTY_COLORS, t, 60, "rect");
+  drawBurst(ctx, size, rng, PARTY_COLORS, cycle(t * 1.06), size * 0.5, size * 0.42, 52, ["rect", "star"]);
+  drawRising(ctx, size, rng, ["#f472b6", "#22d3ee", "#fbbf24", "#a855f7"], t, 4, (x, y, s, c, a) => drawBalloon(ctx, x, y, s, c, a));
+  drawBirthdayCake(ctx, size * 0.5, size * 0.72, 1.02, 0.98);
+  for (let i = 0; i < 5; i += 1) {
+    drawBirthdayCandle(ctx, size * (0.32 + i * 0.09), size * 0.57 + Math.sin(t * TAU * 2 + i) * 5, 0.88, PARTY_COLORS[i % PARTY_COLORS.length], 0.94);
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const phase = cycle(t * 0.58 + i * 0.1);
+    drawSpark(ctx, size * (0.22 + i * 0.055), size * (0.2 + Math.sin(phase * TAU) * 0.05), 7 + (i % 2) * 2, "#ffffff", 0.48);
+  }
+  drawLensFlare(ctx, size * 0.5, size * 0.48, 0.84, "#ffffff", 0.66);
+};
+
 export const renderEffectFrame = (ctx: CanvasRenderingContext2D, id: CelebrationId, size: number, t: number) => {
   ctx.clearRect(0, 0, size, size);
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  const rng = createRng(seedFromText(id));
+  const key = normalizeCelebrationKey(id);
+  const rng = createRng(seedFromText(key));
 
-  switch (id) {
+  switch (key) {
     case "celebration":
-      drawBurst(ctx, size, rng, BASE_COLORS, cycle(t * 1.2), size * 0.5, size * 0.55, 150);
+      renderCelebrationScene(ctx, size, t, rng);
+      break;
+    case "bingo":
+      renderBingoScene(ctx, size, t, rng);
+      break;
+    case "flowers":
+      renderFlowersScene(ctx, size, t, rng);
+      break;
+    case "thumbs-up":
+      renderThumbsUpScene(ctx, size, t, rng);
+      break;
+    case "leprechaun":
+      renderLeprechaunScene(ctx, size, t, rng);
+      break;
+    case "countdown":
+      renderCountdownScene(ctx, size, t, rng);
+      break;
+    case "trivia-time":
+      renderTriviaTimeScene(ctx, size, t, rng);
+      break;
+    case "happy-birthday":
+    case "happy":
+      renderHappyBirthdayScene(ctx, size, t, rng);
       break;
     case "confetti-cannon":
       drawBurst(ctx, size, rng, BASE_COLORS, cycle(t * 1.4), size * 0.13, size * 0.82, 90, ["rect", "circle", "star"]);
@@ -632,10 +1333,6 @@ export const renderEffectFrame = (ctx: CanvasRenderingContext2D, id: Celebration
         const y = size * (0.74 - trail * 0.5 + Math.sin(p * TAU) * 0.025);
         drawParticle(ctx, x, y, 4 + (1 - p) * 8, pick(GOLD_COLORS, rng), p < 0.08 ? "star" : "spark", -0.5, clamp01(1 - p * 0.85));
       }
-      break;
-    case "happy":
-      drawRising(ctx, size, rng, ["#fbbf24", "#22c55e", "#22d3ee"], t, 8, (x, y, s, c, a) => drawSmile(ctx, x, y, s, c, a));
-      drawBurst(ctx, size, rng, BASE_COLORS, cycle(t * 1.4), size * 0.5, size * 0.58, 95);
       break;
     case "rainbow":
       drawRainbow(ctx, size, t);
@@ -750,6 +1447,18 @@ const OVERLAY_PALETTE = ["#ff4ecd", "#a855f7", "#3b82f6", "#22d3ee", "#fbbf24", 
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif';
 
 const OVERLAY_DURATIONS: Partial<Record<CelebrationId, number>> = {
+  celebration: 4200,
+  bingo: 4800,
+  "bingo!": 4800,
+  flowers: 5200,
+  "thumbs-up": 3600,
+  "thumbs up": 3600,
+  leprechaun: 5000,
+  countdown: 3400,
+  "trivia-time": 3800,
+  "trivia time": 3800,
+  "happy-birthday": 4400,
+  "happy birthday": 4400,
   balloons: 7000,
   glitter: 4500,
   hearts: 6500,
@@ -769,10 +1478,21 @@ const OVERLAY_DURATIONS: Partial<Record<CelebrationId, number>> = {
 };
 
 const CONFETTI_DURATIONS: Partial<Record<CelebrationId, number>> = {
-  celebration: 3600,
+  celebration: 4200,
+  bingo: 4800,
+  "bingo!": 4800,
+  flowers: 3600,
+  "thumbs-up": 3200,
+  "thumbs up": 3200,
+  leprechaun: 4200,
+  countdown: 3600,
+  "trivia-time": 3200,
+  "trivia time": 3200,
+  "happy-birthday": 4600,
+  "happy birthday": 4600,
   fireworks: 3300,
   emojis: 2600,
-  happy: 3200,
+  happy: 4600,
   golden: 3200,
   rainbow: 3200,
   laser: 2200,
@@ -790,11 +1510,14 @@ const CONFETTI_DURATIONS: Partial<Record<CelebrationId, number>> = {
   "fw-crackle": 3000,
 };
 
-const getExportDurationMs = (id: CelebrationId) =>
-  Math.max(OVERLAY_DURATIONS[id] ?? 0, CONFETTI_DURATIONS[id] ?? 0) || 3000;
+const getExportDurationMs = (id: CelebrationId) => {
+  const key = normalizeCelebrationKey(id);
+  return Math.max(OVERLAY_DURATIONS[key as CelebrationId] ?? 0, CONFETTI_DURATIONS[key as CelebrationId] ?? 0) || 3000;
+};
 
 const createOverlayScene = (id: CelebrationId): OverlayScene => {
-  const rng = createRng(seedFromText(`${id}-overlay`));
+  const key = normalizeCelebrationKey(id);
+  const rng = createRng(seedFromText(`${key}-overlay`));
   const make = (
     count: number,
     opts: Partial<OverlaySceneItem> & { emojis?: string[]; colors?: string[] },
@@ -812,7 +1535,91 @@ const createOverlayScene = (id: CelebrationId): OverlayScene => {
       color: opts.colors ? pick(opts.colors, rng) : undefined,
     }));
 
-  switch (id) {
+  if (key === "celebration") {
+    return {
+      mode: "falling",
+      items: make(28, { colors: PARTY_COLORS, size: 7, duration: 3.1 }),
+      flashes: [{ start: 0.08, duration: 0.22, variant: "neon" }],
+    };
+  }
+
+  if (key === "bingo") {
+    return {
+      mode: "twinkle",
+      items: make(10, { emojis: ["7", "8", "3", "9", "!"], size: 18, duration: 0 }),
+      flashes: [{ start: 0.02, duration: 0.2, variant: "white" }, { start: 0.5, duration: 0.24, variant: "neon" }],
+    };
+  }
+
+  if (key === "flowers") {
+    return { mode: "rising", items: make(16, { colors: FLOWER_COLORS, size: 9, duration: 4.8 }), flashes: [] };
+  }
+
+  if (key === "thumbs-up") {
+    return {
+      mode: "twinkle",
+      items: make(8, { emojis: ["+1", "OK"], size: 22, duration: 0 }),
+      flashes: [{ start: 0.05, duration: 0.18, variant: "neon" }],
+    };
+  }
+
+  if (key === "leprechaun") {
+    return {
+      mode: "rising",
+      items: make(16, { colors: LUCKY_COLORS, size: 10, duration: 4.2 }),
+      flashes: [{ start: 0.12, duration: 0.2, variant: "neon" }],
+    };
+  }
+
+  if (key === "countdown") {
+    return {
+      mode: "none",
+      items: [],
+      flashes: [
+        { start: 0.2, duration: 0.16, variant: "white" },
+        { start: 1.2, duration: 0.16, variant: "white" },
+        { start: 2.2, duration: 0.24, variant: "white" },
+      ],
+    };
+  }
+
+  if (key === "trivia-time") {
+    return {
+      mode: "twinkle",
+      items: make(10, { emojis: ["?"], size: 28, duration: 0 }),
+      flashes: [{ start: 0.05, duration: 0.24, variant: "neon" }],
+    };
+  }
+
+  if (key === "happy-birthday") {
+    return {
+      mode: "rising",
+      items: make(18, { colors: PARTY_COLORS, size: 8, duration: 4.6 }),
+      flashes: [{ start: 0.06, duration: 0.18, variant: "white" }],
+    };
+  }
+
+  switch (key) {
+    case "celebration":
+      return { mode: "falling", items: make(64, { colors: PARTY_COLORS, size: 8, duration: 3.4 }), flashes: [{ start: 0.08, duration: 0.26, variant: "neon" }] };
+    case "bingo":
+      return {
+        mode: "falling",
+        items: make(36, { emojis: ["7", "8", "3", "9", "!", "●"], size: 22, duration: 3.8 }),
+        flashes: [{ start: 0.02, duration: 0.2, variant: "white" }, { start: 0.5, duration: 0.24, variant: "neon" }],
+      };
+    case "flowers":
+      return { mode: "rising", items: make(32, { emojis: ["✿", "❀", "❁", "✾"], size: 22, duration: 4.6 }), flashes: [] };
+    case "thumbs-up":
+      return { mode: "twinkle", items: make(22, { emojis: ["👍", "✨", "+1"], size: 26, duration: 0 }), flashes: [{ start: 0.05, duration: 0.18, variant: "neon" }] };
+    case "leprechaun":
+      return { mode: "falling", items: make(28, { emojis: ["🍀", "🌈", "💰"], size: 24, duration: 4.2 }), flashes: [{ start: 0.12, duration: 0.24, variant: "neon" }] };
+    case "countdown":
+      return { mode: "none", items: [], flashes: [{ start: 0.2, duration: 0.16, variant: "white" }, { start: 1.2, duration: 0.16, variant: "white" }, { start: 2.2, duration: 0.24, variant: "white" }] };
+    case "trivia-time":
+      return { mode: "twinkle", items: make(18, { emojis: ["?", "❓", "✦"], size: 30, duration: 0 }), flashes: [{ start: 0.05, duration: 0.3, variant: "neon" }] };
+    case "happy-birthday":
+      return { mode: "rising", items: make(28, { emojis: ["🎂", "🎈", "✨"], size: 28, duration: 4.6 }), flashes: [{ start: 0.06, duration: 0.22, variant: "white" }] };
     case "balloons":
       return { mode: "rising", items: make(28, { emojis: ["🎈"], size: 36, duration: 6 }), flashes: [] };
     case "glitter":
@@ -996,7 +1803,8 @@ const launchExportBurst = (
 
 const playCardConfettiEffect = (id: CelebrationId, fire: confetti.CreateTypes): ExportPlayback => {
   const timers: number[] = [];
-  const rng = createRng(seedFromText(`${id}-confetti`));
+  const key = normalizeCelebrationKey(id);
+  const rng = createRng(seedFromText(`${key}-confetti`));
   let stopped = false;
 
   const schedule = (fn: () => void, delay: number) => {
@@ -1063,10 +1871,69 @@ const playCardConfettiEffect = (id: CelebrationId, fire: confetti.CreateTypes): 
     }
   };
 
-  switch (id) {
+  if (key === "celebration") {
+    fireConfetti({ particleCount: 92, colors: PARTY_COLORS, spread: 112, scalar: 1.1 });
+    schedule(() => fireConfetti({ particleCount: 64, colors: PARTY_COLORS, spread: 126, scalar: 1.02 }), 360);
+  } else if (key === "bingo") {
+    fireConfetti({ particleCount: 84, colors: GOLD_COLORS, shapes: ["circle"], scalar: 1.2, startVelocity: 42 });
+    triggerEmojiConfetti(["7", "8", "3", "9", "!"]);
+    schedule(() => fireConfetti({ particleCount: 56, colors: ["#fbbf24", "#fde68a", "#ffffff"], shapes: ["circle"], scalar: 1.22, spread: 92 }), 320);
+  } else if (key === "flowers") {
+    fireConfetti({ particleCount: 42, colors: FLOWER_COLORS, spread: 86, startVelocity: 22, scalar: 0.9 });
+    schedule(() => fireConfetti({ particleCount: 28, colors: ["#ffffff", "#f9a8d4", "#fbcfe8"], spread: 72, startVelocity: 18, scalar: 0.82 }), 220);
+  } else if (key === "thumbs-up") {
+    fireConfetti({ particleCount: 40, colors: ["#60a5fa", "#22d3ee", "#c084fc", "#ffffff"], scalar: 0.96, spread: 68 });
+    triggerEmojiConfetti(["+1", "OK"]);
+  } else if (key === "leprechaun") {
+    fireConfetti({ particleCount: 54, colors: LUCKY_COLORS, scalar: 1.02, spread: 82 });
+    schedule(() => rainbowConfetti(), 240);
+  } else if (key === "countdown") {
+    schedule(() => fireConfetti({ particleCount: 18, colors: ["#ffffff"], startVelocity: 28 }), 0);
+    schedule(() => fireConfetti({ particleCount: 18, colors: ["#ffffff"], startVelocity: 28 }), 900);
+    schedule(() => fireConfetti({ particleCount: 90, colors: ["#ffffff", "#fde68a", "#fbbf24"], startVelocity: 50, spread: 138, scalar: 1.2 }), 1800);
+  } else if (key === "trivia-time") {
+    fireConfetti({ particleCount: 24, colors: ["#22d3ee", "#a855f7", "#ffffff"], shapes: ["square"], scalar: 0.96, spread: 68 });
+    triggerEmojiConfetti(["?"]);
+  } else if (key === "happy-birthday") {
+    fireConfetti({ particleCount: 72, colors: PARTY_COLORS, scalar: 1.04, spread: 106 });
+    schedule(() => fireConfetti({ particleCount: 36, colors: PARTY_COLORS, scalar: 0.9, spread: 120 }), 280);
+  } else {
+
+  switch (key) {
     case "celebration":
-      fullScreenConfetti();
-      schedule(() => fullScreenConfetti(), 600);
+      fireConfetti({ particleCount: 140, colors: PARTY_COLORS, spread: 126, scalar: 1.18 });
+      triggerEmojiConfetti(["🎉", "🎊", "✨"]);
+      schedule(() => fireConfetti({ particleCount: 90, colors: PARTY_COLORS, spread: 136, scalar: 1.08 }), 420);
+      break;
+    case "bingo":
+      fireConfetti({ particleCount: 120, colors: GOLD_COLORS, shapes: ["circle"], scalar: 1.25, startVelocity: 42 });
+      triggerEmojiConfetti(["7", "8", "3", "9", "!"]);
+      schedule(() => fireConfetti({ particleCount: 90, colors: ["#fbbf24", "#fde68a", "#ffffff"], shapes: ["circle"], scalar: 1.3, spread: 96 }), 320);
+      break;
+    case "flowers":
+      triggerEmojiConfetti(["🌸", "🌼", "✨"]);
+      break;
+    case "thumbs-up":
+      fireConfetti({ particleCount: 56, colors: ["#60a5fa", "#22d3ee", "#c084fc", "#ffffff"], scalar: 1.02 });
+      triggerEmojiConfetti(["👍", "✨", "+1"]);
+      break;
+    case "leprechaun":
+      fireConfetti({ particleCount: 72, colors: LUCKY_COLORS, scalar: 1.08 });
+      triggerEmojiConfetti(["🍀", "🌈", "💰"]);
+      schedule(() => rainbowConfetti(), 240);
+      break;
+    case "countdown":
+      schedule(() => fireConfetti({ particleCount: 24, colors: ["#ffffff"], startVelocity: 28 }), 0);
+      schedule(() => fireConfetti({ particleCount: 24, colors: ["#ffffff"], startVelocity: 28 }), 900);
+      schedule(() => fireConfetti({ particleCount: 120, colors: ["#ffffff", "#fde68a", "#fbbf24"], startVelocity: 50, spread: 144, scalar: 1.3 }), 1800);
+      break;
+    case "trivia-time":
+      fireConfetti({ particleCount: 36, colors: ["#22d3ee", "#a855f7", "#ffffff"], shapes: ["square"], scalar: 1.02 });
+      triggerEmojiConfetti(["?", "❓", "✦"]);
+      break;
+    case "happy-birthday":
+      fireConfetti({ particleCount: 96, colors: PARTY_COLORS, scalar: 1.12 });
+      triggerEmojiConfetti(["🎂", "🎈", "✨"]);
       break;
     case "fireworks":
       fireworksConfetti();
@@ -1203,6 +2070,7 @@ const playCardConfettiEffect = (id: CelebrationId, fire: confetti.CreateTypes): 
       }
       break;
     }
+  }
   }
 
   return {
@@ -1360,6 +2228,7 @@ const scheduleAudioForEffect = (
   destination: AudioNode,
   offset = 0.2,
 ) => {
+  const key = normalizeCelebrationKey(id);
   const tone = (...args: Parameters<typeof toneTo> extends [any, any, ...infer Rest] ? Rest : never) =>
     toneTo(ac, destination, args[0], args[1], args[2], args[3], (args[4] ?? 0) + offset);
   const sweep = (...args: Parameters<typeof sweepTo> extends [any, any, ...infer Rest] ? Rest : never) =>
@@ -1402,10 +2271,42 @@ const scheduleAudioForEffect = (
     for (let i = 0; i < 25; i += 1) noise(0.05 + Math.random() * 0.05, 0.06 + Math.random() * 0.05, i * 0.04);
   };
 
-  switch (id) {
+  switch (key) {
     case "celebration":
     case "confetti-cannon":
       partyHorn();
+      fireworks();
+      break;
+    case "bingo":
+      partyHorn();
+      fireworks();
+      thunder(0.18);
+      [523, 659, 784, 988].forEach((f, i) => tone(f, 0.18, "square", 0.18, i * 0.08));
+      break;
+    case "flowers":
+      [698, 880, 1047, 1319].forEach((f, i) => tone(f, 0.22, "triangle", 0.12, i * 0.08));
+      sparkle();
+      break;
+    case "thumbs-up":
+      sweep(340, 900, 0.16, "square", 0.16);
+      [988, 1175, 1319].forEach((f, i) => tone(f, 0.12, "triangle", 0.12, i * 0.05));
+      applause();
+      break;
+    case "leprechaun":
+      [440, 554, 659, 880].forEach((f, i) => tone(f, 0.14, "triangle", 0.13, i * 0.07));
+      golden();
+      break;
+    case "countdown":
+      drumroll();
+      thunder(1.5);
+      break;
+    case "trivia-time":
+      neon();
+      [880, 1175, 1568].forEach((f, i) => tone(f, 0.12, "square", 0.11, i * 0.07));
+      break;
+    case "happy-birthday":
+      [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.16, "triangle", 0.16, i * 0.08));
+      fireworks();
       break;
     case "fireworks":
     case "fw-classic":
