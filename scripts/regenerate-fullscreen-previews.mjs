@@ -1078,6 +1078,73 @@ const renderFullscreenFestival = () => {
   return rgba;
 };
 
+const renderExplodingBingoBalls = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const originX = WIDTH * 0.5;
+  const originY = HEIGHT * 0.53;
+
+  drawCircle(rgba, originX - 8, originY + 6, 118, palette.gold, 0.08, 62);
+  drawCircle(rgba, originX + 16, originY - 8, 152, palette.blue, 0.035, 76);
+  drawCircle(rgba, originX, originY, 94, palette.white, 0.1, 52);
+
+  const burstBalls = [
+    { x: originX - 308, y: originY - 132, radius: 68, body: ballPalette[2] },
+    { x: originX - 94, y: originY - 234, radius: 58, body: ballPalette[4] },
+    { x: originX + 196, y: originY - 188, radius: 64, body: { color: hexToRgb("#ff6548"), digit: 7 } },
+    { x: originX + 364, y: originY - 24, radius: 72, body: ballPalette[1] },
+    { x: originX + 32, y: originY + 212, radius: 68, body: ballPalette[3] },
+    { x: originX - 274, y: originY + 84, radius: 62, body: ballPalette[4] },
+  ];
+
+  for (const ball of burstBalls) {
+    drawCapsule(rgba, originX, originY, ball.x, ball.y, 6, palette.gold, 0.08);
+    drawCapsule(rgba, originX, originY, ball.x, ball.y, 2.2, palette.white, 0.18);
+    drawBingoBall(rgba, ball.x, ball.y, ball.radius, ball.body.color, ball.body.digit, 0.98);
+    drawSpark(rgba, ball.x + (ball.radius * 0.72), ball.y - (ball.radius * 0.66), 10, palette.white, 0.34);
+  }
+
+  const heroBalls = [
+    { x: 298, y: 316, radius: 96, body: ballPalette[2] },
+    { x: WIDTH - 280, y: 236, radius: 104, body: { color: hexToRgb("#ff6548"), digit: 7 } },
+    { x: 1004, y: HEIGHT - 34, radius: 116, body: ballPalette[4] },
+  ];
+
+  for (const ball of heroBalls) {
+    drawBingoBall(rgba, ball.x, ball.y, ball.radius, ball.body.color, ball.body.digit, 0.98);
+    drawSpark(rgba, ball.x + (ball.radius * 0.76), ball.y - (ball.radius * 0.72), 12, palette.white, 0.38);
+  }
+
+  for (let streak = 0; streak < 10; streak += 1) {
+    const angle = (streak / 10) * TAU;
+    const distance = 132 + ((streak % 4) * 58);
+    const outerX = originX + (Math.cos(angle) * distance);
+    const outerY = originY + (Math.sin(angle) * distance * 0.68);
+    const color = streak % 4 === 0 ? palette.gold : streak % 4 === 1 ? palette.goldLight : streak % 4 === 2 ? palette.blue : hexToRgb("#ff6548");
+    drawCapsule(rgba, originX, originY, outerX, outerY, 5, color, 0.16);
+    drawCapsule(rgba, originX, originY, outerX, outerY, 2.2, palette.white, 0.64);
+  }
+
+  drawRing(rgba, originX, originY, 146, 11, palette.gold, 0.18);
+  drawRing(rgba, originX, originY, 222, 9, palette.goldLight, 0.08);
+  drawSpark(rgba, originX, originY, 24, palette.white, 0.42);
+
+  for (let spark = 0; spark < 12; spark += 1) {
+    const angle = (spark / 12) * TAU;
+    const distance = 102 + ((spark % 4) * 36);
+    const color = spark % 3 === 0 ? palette.goldLight : spark % 3 === 1 ? palette.white : palette.blue;
+    drawSpark(
+      rgba,
+      originX + (Math.cos(angle) * distance),
+      originY + (Math.sin(angle) * distance * 0.62),
+      8 + (spark % 3),
+      color,
+      0.32,
+    );
+  }
+
+  return rgba;
+};
+
 const renderJackpotParadeBlast = () => {
   const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
   const rng = createRng(171);
@@ -1415,6 +1482,7 @@ const renderEnhancedFullscreenPreview = (effect) => {
 const effects = [
   { output: "trh-full-party-blast.png", render: renderPartyBlast, overlay: false },
   { output: "trh-full-fullscreen-festival.png", render: renderFullscreenFestival, overlay: false },
+  { output: "trh-full-exploding-bingo-balls.png", render: renderExplodingBingoBalls, overlay: false },
 ];
 
 export const regenerateFullscreenPreviews = async (rootDir) => {

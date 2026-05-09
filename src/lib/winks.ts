@@ -7,7 +7,8 @@ export type ChatWinkCategory =
   | "Hearts"
   | "Fireworks"
   | "Bingo Balls"
-  | "Lucky Effects";
+  | "Lucky Effects"
+  | "Reactions";
 export type FullscreenWinkCategory = "Celebration" | "Bingo!";
 
 export type WinkAsset = {
@@ -287,6 +288,40 @@ export const winkLibrary: WinkAsset[] = [
     eyebrow: "Bonus shower",
   },
   {
+    id: "trh-chat-thumbs-up-pop",
+    name: "Thumbs Up Pop",
+    category: "chat",
+    chatCategory: "Reactions",
+    format: ["APNG"],
+    resolution: "768x1024",
+    description: "Joinha gigante com pop central, bounce social, glow neon e leitura imediata de MSN Wink premium.",
+    filePath: "/winks/chat/trh-chat-thumbs-up-pop.apng",
+    previewPath: "/previews/chat/trh-chat-thumbs-up-pop.png",
+    folderPath: "public/winks/chat",
+    previewFolderPath: "public/previews/chat",
+    accent: "#58c7ff",
+    surfaceClass: "from-[#1c1e56] via-[#11142c] to-[#061019]",
+    badgeClass: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d0f2ff]",
+    eyebrow: "Reaction pop",
+  },
+  {
+    id: "trh-chat-double-like-rush",
+    name: "Double Like Rush",
+    category: "chat",
+    chatCategory: "Reactions",
+    format: ["APNG"],
+    resolution: "768x1024",
+    description: "Dois joinhas entram pelas laterais com bounce satisfatorio, streaks limpos e energia social premium.",
+    filePath: "/winks/chat/trh-chat-double-like-rush.apng",
+    previewPath: "/previews/chat/trh-chat-double-like-rush.png",
+    folderPath: "public/winks/chat",
+    previewFolderPath: "public/previews/chat",
+    accent: "#ff63c7",
+    surfaceClass: "from-[#391651] via-[#141026] to-[#061019]",
+    badgeClass: "border-[#ff63c7]/30 bg-[#ff63c7]/10 text-[#ffe0f2]",
+    eyebrow: "Double reaction",
+  },
+  {
     id: "trh-full-party-blast",
     name: "Party Blast",
     category: "fullscreen",
@@ -338,7 +373,7 @@ export const winkLibrary: WinkAsset[] = [
     surfaceClass: "from-[#17264d] via-[#0b1327] to-[#050816]",
     badgeClass: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]",
     eyebrow: "Bingo jackpot burst",
-    previewStartProgress: 0.03,
+    previewStartProgress: 0.06,
   },
 ];
 
@@ -352,6 +387,7 @@ export const chatWinkCategoryOrder: ChatWinkCategory[] = [
   "Fireworks",
   "Bingo Balls",
   "Lucky Effects",
+  "Reactions",
 ];
 
 export const chatWinkCategoryMeta: Record<
@@ -382,6 +418,11 @@ export const chatWinkCategoryMeta: Record<
     accent: "#12f7d6",
     description: "Quick luck cues for bonus drops, streak nudges, and optimistic social energy.",
     vibe: "Light and lucky",
+  },
+  Reactions: {
+    accent: "#58c7ff",
+    description: "Social sticker energy for expressive reactions, instant approval, and nostalgic messenger-style moments.",
+    vibe: "Expressive and social",
   },
 };
 

@@ -3038,9 +3038,260 @@ const buildFullscreenFestival = () => {
   return makeAnimation("Fullscreen Festival", layers);
 };
 
+const buildExplodingBingoBalls = () => {
+  let nextIndex = 1;
+  const layers = [];
+  const center = [WIDTH * 0.5, HEIGHT * 0.53];
+  const ballPalette = [
+    { color: rgb("#f5c65b"), digit: 1 },
+    { color: rgb("#2f86ff"), digit: 3 },
+    { color: rgb("#ff6548"), digit: 7 },
+    { color: rgb("#7a44ff"), digit: 8 },
+    { color: rgb("#23bf66"), digit: 9 },
+  ];
+
+  layers.push(
+    buildLayer({
+      index: nextIndex,
+      name: "Bingo Core Glow",
+      shapes: [
+        group("Bingo Gold Glow", [
+          ellipseShape("Bingo Gold Glow Path", 240, 240),
+          fillNode("Bingo Gold Glow Fill", rgb("#f5c65b"), 16),
+        ]),
+        group("Bingo Blue Glow", [
+          ellipseShape("Bingo Blue Glow Path", 260, 260),
+          fillNode("Bingo Blue Glow Fill", rgb("#58c7ff"), 6),
+        ], {
+          position: [18, -18],
+        }),
+        group("Bingo White Hotspot", [
+          ellipseShape("Bingo White Hotspot Path", 136, 136),
+          fillNode("Bingo White Hotspot Fill", rgb("#ffffff"), 14),
+        ]),
+      ],
+      positionFrames: [{ t: 0, s: [center[0], center[1], 0] }],
+      scaleFrames: [
+        { t: 0, s: [78, 78, 100] },
+        { t: 8, s: [58, 58, 100] },
+        { t: 18, s: [126, 126, 100] },
+        { t: 48, s: [98, 98, 100] },
+        { t: 160, s: [90, 90, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: 2, s: [82] },
+        { t: 20, s: [94] },
+        { t: 136, s: [44] },
+        { t: 179, s: [0] },
+      ],
+      inFrame: 0,
+      outFrame: DURATION_FRAMES,
+    }),
+  );
+  nextIndex += 1;
+
+  const clusterConfigs = [
+    { offset: [-64, -28], target: [-380, -176], radius: 64, ball: ballPalette[1], rotation: [-16, 18, 172] },
+    { offset: [-12, -62], target: [-102, -282], radius: 58, ball: ballPalette[0], rotation: [-8, 18, 154] },
+    { offset: [50, -36], target: [248, -236], radius: 62, ball: ballPalette[2], rotation: [14, -12, 168] },
+    { offset: [72, 12], target: [418, -36], radius: 68, ball: ballPalette[3], rotation: [18, -8, 184] },
+    { offset: [14, 64], target: [40, 250], radius: 66, ball: ballPalette[4], rotation: [0, 14, 162] },
+    { offset: [-58, 44], target: [-334, 108], radius: 60, ball: ballPalette[0], rotation: [-14, 8, 168] },
+  ];
+
+  for (const [index, config] of clusterConfigs.entries()) {
+    const start = [center[0] + config.offset[0], center[1] + config.offset[1], 0];
+    const compressed = [center[0] + (config.offset[0] * 0.3), center[1] + (config.offset[1] * 0.3), 0];
+    const burst = [center[0] + config.target[0], center[1] + config.target[1], 0];
+    const settle = [center[0] + (config.target[0] * 0.92), center[1] + (config.target[1] * 0.92), 0];
+
+    layers.push(
+      buildLayer({
+        index: nextIndex,
+        name: `Bingo Cluster Ball ${index + 1}`,
+        shapes: [bingoBallGroup("Bingo Cluster Ball Shape", config.radius, config.ball.color, config.ball.digit)],
+        positionFrames: [
+          { t: 0, s: start },
+          { t: 8, s: compressed },
+          { t: 20, s: burst },
+          { t: 42, s: settle },
+        ],
+        scaleFrames: [
+          { t: 0, s: [98, 98, 100] },
+          { t: 8, s: [74, 74, 100] },
+          { t: 20, s: [138, 138, 100] },
+          { t: 34, s: [102, 102, 100] },
+          { t: 42, s: [108, 108, 100] },
+          { t: 150, s: [104, 104, 100] },
+        ],
+        opacityFrames: [
+          { t: 0, s: [100] },
+          { t: 132, s: [100] },
+          { t: 168, s: [38] },
+          { t: 179, s: [0] },
+        ],
+        rotationFrames: [
+          { t: 0, s: [config.rotation[0]] },
+          { t: 8, s: [config.rotation[1]] },
+          { t: 20, s: [config.rotation[2]] },
+          { t: 42, s: [config.rotation[2] + 42] },
+        ],
+        inFrame: 0,
+        outFrame: DURATION_FRAMES,
+      }),
+    );
+    nextIndex += 1;
+  }
+
+  const impactStreaks = buildRadialBurstLayers(nextIndex, {
+    seed: 901,
+    count: 8,
+    center,
+    minRadius: 70,
+    maxRadius: 420,
+    startFrame: 10,
+    duration: 72,
+    palette: [rgb("#f5c65b"), rgb("#fff1b4"), rgb("#58c7ff"), rgb("#ff6548")],
+    sizeRange: [20, 34],
+    shapeFactory: ({ size, color }) => [
+      lineStrokeGroup(
+        "Bingo Impact Streak",
+        [[0, 0], [size * 3.2, 0]],
+        color,
+        Math.max(5, size * 0.18),
+        rgb("#ffffff"),
+        Math.max(1.6, size * 0.06),
+        24,
+        92,
+      ),
+    ],
+    scaleFrom: 18,
+    scaleTo: 134,
+    travelYScale: 0.72,
+    rotationRange: [-180, 180],
+  });
+  layers.push(...impactStreaks);
+  nextIndex += impactStreaks.length;
+
+  const shockwaves = buildRingPulseLayers(nextIndex, {
+    seed: 902,
+    count: 2,
+    center,
+    radiusRange: [156, 264],
+    widthRange: [10, 16],
+    palette: [rgb("#f5c65b"), rgb("#fff1b4")],
+    accentPalette: [rgb("#ffffff")],
+    startFrame: 12,
+    durationRange: [48, 70],
+    scaleFrom: 24,
+    scaleTo: 176,
+  });
+  layers.push(...shockwaves);
+  nextIndex += shockwaves.length;
+
+  const heroBallRush = buildHeroBallRushLayers(nextIndex, [
+    {
+      startFrame: 24,
+      from: [center[0] - 24, center[1] + 18],
+      mid: [398, 372],
+      to: [-198, 288],
+      radius: 84,
+      color: rgb("#2f86ff"),
+      digit: 3,
+      rotationStart: -36,
+      rotationMid: 124,
+      rotationEnd: 248,
+      endFrame: 122,
+    },
+    {
+      startFrame: 26,
+      from: [center[0] + 20, center[1] - 8],
+      mid: [1498, 320],
+      to: [WIDTH + 212, 228],
+      radius: 88,
+      color: rgb("#ff6548"),
+      digit: 7,
+      rotationStart: 24,
+      rotationMid: -96,
+      rotationEnd: -218,
+      endFrame: 126,
+    },
+    {
+      startFrame: 30,
+      from: [center[0] + 2, center[1] + 34],
+      mid: [1002, 790],
+      to: [1044, HEIGHT + 182],
+      radius: 94,
+      color: rgb("#f5c65b"),
+      digit: 1,
+      rotationStart: -12,
+      rotationMid: 88,
+      rotationEnd: 204,
+      endFrame: 132,
+    },
+  ]);
+  layers.push(...heroBallRush);
+  nextIndex += heroBallRush.length;
+
+  const jackpotSparkles = buildRadialBurstLayers(nextIndex, {
+    seed: 903,
+    count: 12,
+    center,
+    minRadius: 92,
+    maxRadius: 220,
+    startFrame: 20,
+    duration: 104,
+    palette: [rgb("#ffffff"), rgb("#fff1b4"), rgb("#f5c65b"), rgb("#58c7ff")],
+    sizeRange: [10, 16],
+    shapeFactory: ({ size, color }) => [sparkleGroup("Bingo Spark", size, color, rgb("#ffffff"))],
+    scaleFrom: 18,
+    scaleTo: 110,
+    travelYScale: 0.76,
+    rotationRange: [-180, 180],
+  });
+  layers.push(...jackpotSparkles);
+  nextIndex += jackpotSparkles.length;
+
+  layers.push(
+    buildLayer({
+      index: nextIndex,
+      name: "Bingo Afterglow",
+      shapes: [
+        group("Bingo Afterglow Gold", [
+          ellipseShape("Bingo Afterglow Gold Path", 360, 360),
+          fillNode("Bingo Afterglow Gold Fill", rgb("#f5c65b"), 8),
+        ]),
+        group("Bingo Afterglow White", [
+          ellipseShape("Bingo Afterglow White Path", 180, 180),
+          fillNode("Bingo Afterglow White Fill", rgb("#ffffff"), 6),
+        ]),
+      ],
+      positionFrames: [{ t: 0, s: [center[0], center[1], 0] }],
+      scaleFrames: [
+        { t: 44, s: [92, 92, 100] },
+        { t: 92, s: [104, 104, 100] },
+        { t: 154, s: [114, 114, 100] },
+        { t: 179, s: [122, 122, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: 40, s: [24] },
+        { t: 118, s: [16] },
+        { t: 179, s: [0] },
+      ],
+      inFrame: 40,
+      outFrame: DURATION_FRAMES,
+    }),
+  );
+
+  return makeAnimation("Exploding Bingo Balls", layers);
+};
+
 const effects = [
   { output: "trh-full-party-blast.json", build: buildPartyBlast, decorate: false },
   { output: "trh-full-fullscreen-festival.json", build: buildFullscreenFestival, decorate: false },
+  { output: "trh-full-exploding-bingo-balls.json", build: buildExplodingBingoBalls, decorate: false },
 ];
 
 export const regenerateFullscreenLotties = async (rootDir) => {

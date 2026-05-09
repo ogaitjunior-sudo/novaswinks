@@ -409,6 +409,55 @@ const drawLuckyClover = (buffer, cx, cy, size, color, alpha = 1) => {
   drawSpark(buffer, cx, cy, Math.max(4, size * 0.16), hexToRgb("#fff8d7"), alpha * 0.34);
 };
 
+const drawThumbsUp = (buffer, cx, cy, size, palette, alpha = 1, tilt = 0, mirror = false) => {
+  const cos = Math.cos(tilt);
+  const sin = Math.sin(tilt);
+  const mirrorScale = mirror ? -1 : 1;
+  const point = (lx, ly) => {
+    const mx = lx * mirrorScale;
+    return [
+      cx + (mx * cos) - (ly * sin),
+      cy + (mx * sin) + (ly * cos),
+    ];
+  };
+  const angle = mirror ? -tilt : tilt;
+  const handColor = palette.hand;
+  const cuffColor = palette.cuff;
+  const glowColor = palette.glow;
+  const outlineColor = palette.outline ?? hexToRgb("#ffffff");
+
+  drawCircle(buffer, cx, cy - (size * 0.02), size * 0.86, glowColor, alpha * 0.08);
+  drawCircle(buffer, cx + (mirror ? -1 : 1) * size * 0.08, cy - (size * 0.16), size * 0.46, glowColor, alpha * 0.06);
+
+  const [cuffX, cuffY] = point(-size * 0.02, size * 0.28);
+  drawRotatedRect(buffer, cuffX, cuffY, size * 0.54, size * 0.22, angle, cuffColor, alpha * 0.96, 1.5);
+  drawRotatedRect(buffer, cuffX, cuffY, size * 0.38, size * 0.08, angle, outlineColor, alpha * 0.24, 1);
+
+  const [palmX, palmY] = point(-size * 0.02, 0);
+  drawRotatedRect(buffer, palmX, palmY, size * 0.56, size * 0.5, angle, handColor, alpha, 1.6);
+
+  const fingerOffsets = [-0.2, -0.06, 0.08, 0.22];
+  for (const offset of fingerOffsets) {
+    const [fx, fy] = point(offset * size, -size * 0.22);
+    drawCircle(buffer, fx, fy, size * 0.105, handColor, alpha);
+  }
+
+  const [thumbAx, thumbAy] = point(size * 0.18, -size * 0.04);
+  const [thumbBx, thumbBy] = point(size * 0.28, -size * 0.42);
+  drawCapsule(buffer, thumbAx, thumbAy, thumbBx, thumbBy, Math.max(2.8, size * 0.14), handColor, alpha, 1.3);
+  drawCircle(buffer, thumbBx, thumbBy, size * 0.12, handColor, alpha);
+
+  const [sideX, sideY] = point(-size * 0.3, 0);
+  drawCircle(buffer, sideX, sideY, size * 0.14, handColor, alpha * 0.98);
+
+  const [highlightAx, highlightAy] = point(-size * 0.18, -size * 0.08);
+  const [highlightBx, highlightBy] = point(size * 0.08, -size * 0.18);
+  drawCapsule(buffer, highlightAx, highlightAy, highlightBx, highlightBy, Math.max(1.2, size * 0.04), outlineColor, alpha * 0.22, 1);
+
+  const [thumbHighlightX, thumbHighlightY] = point(size * 0.2, -size * 0.28);
+  drawCircle(buffer, thumbHighlightX, thumbHighlightY, size * 0.08, outlineColor, alpha * 0.16);
+};
+
 const TEXT_FONT = {
   " ": ["000", "000", "000", "000", "000", "000", "000"],
   "!": ["00100", "00100", "00100", "00100", "00100", "00000", "00100"],
@@ -2955,6 +3004,112 @@ const renderUltimateBingoFinale = (time) => {
   return rgba;
 };
 
+const renderThumbsUpPop = (time) => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const centerX = WIDTH * 0.5;
+  const centerY = HEIGHT * 0.58;
+  const entrance = easeOutBack(clamp(time * 3.2, 0, 1));
+  const pulse = 0.74 + (0.26 * Math.sin(time * TAU * 1.6));
+  const heroY = mix(HEIGHT + 180, centerY, entrance) + (Math.sin(time * TAU * 1.2) * 10);
+  const heroSize = 220 + (pulse * 18);
+  const heroPalette = {
+    hand: hexToRgb("#fff4dd"),
+    cuff: COLOR_CYAN,
+    glow: COLOR_PURPLE,
+    outline: COLOR_WHITE,
+  };
+
+  drawShockwave(rgba, centerX, centerY + 34, 148 + (pulse * 26), COLOR_CYAN, 0.1);
+  drawShockwave(rgba, centerX, centerY + 34, 210 + (pulse * 18), COLOR_HOT, 0.06);
+  drawBurstRays(rgba, centerX, centerY + 30, 182 + (pulse * 12), 16, COLOR_PURPLE, COLOR_WHITE, 0.1, time * TAU * 0.05, 0.84);
+
+  drawThumbsUp(rgba, centerX - 116, centerY + 34, 106, {
+    hand: hexToRgb("#f3ebff"),
+    cuff: COLOR_PURPLE,
+    glow: COLOR_CYAN,
+    outline: COLOR_WHITE,
+  }, 0.26, -0.18);
+  drawThumbsUp(rgba, centerX + 122, centerY + 26, 98, {
+    hand: hexToRgb("#eaf7ff"),
+    cuff: COLOR_HOT,
+    glow: COLOR_CYAN,
+    outline: COLOR_WHITE,
+  }, 0.22, 0.16, true);
+  drawThumbsUp(rgba, centerX, heroY, heroSize, heroPalette, 0.98, -0.08);
+
+  for (let streak = 0; streak < 10; streak += 1) {
+    const angle = (-Math.PI * 0.78) + ((streak / 9) * (Math.PI * 0.72));
+    const radius = 130 + ((streak % 4) * 34);
+    const targetX = centerX + (Math.cos(angle) * radius);
+    const targetY = centerY + 18 + (Math.sin(angle) * radius * 0.56);
+    drawCapsule(rgba, centerX, centerY + 22, targetX, targetY, 6, streak % 2 === 0 ? COLOR_CYAN : COLOR_HOT, 0.08);
+    drawCapsule(rgba, centerX, centerY + 22, targetX, targetY, 2.2, COLOR_WHITE, 0.18);
+  }
+
+  for (let spark = 0; spark < 22; spark += 1) {
+    const angle = (spark / 22) * TAU;
+    const radius = 96 + ((spark % 5) * 32) + (Math.sin((time * TAU * 1.2) + spark) * 10);
+    const x = centerX + (Math.cos(angle) * radius);
+    const y = centerY + 8 + (Math.sin(angle) * radius * 0.58);
+    drawSpark(rgba, x, y, 5 + ((spark % 3) * 1.4), spark % 4 === 0 ? COLOR_HOT : spark % 3 === 0 ? COLOR_CYAN : COLOR_WHITE, 0.16);
+  }
+
+  return rgba;
+};
+
+const renderDoubleLikeRush = (time) => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const leftEntrance = easeOutBack(clamp(time * 3, 0, 1));
+  const rightEntrance = easeOutBack(clamp((time - 0.06) * 3.1, 0, 1));
+  const leftX = mix(-180, WIDTH * 0.34, leftEntrance);
+  const rightX = mix(WIDTH + 180, WIDTH * 0.66, rightEntrance);
+  const leftY = HEIGHT * 0.58 + (Math.sin((time * TAU * 1.2) + 0.6) * 14);
+  const rightY = HEIGHT * 0.5 + (Math.sin((time * TAU * 1.24) + 1.4) * 12);
+
+  drawShockwave(rgba, WIDTH * 0.5, HEIGHT * 0.56, 132 + (Math.sin(time * TAU * 1.4) * 16), COLOR_PURPLE, 0.08);
+  drawBurstRays(rgba, WIDTH * 0.5, HEIGHT * 0.54, 164 + (Math.sin(time * TAU) * 10), 14, COLOR_CYAN, COLOR_WHITE, 0.08, time * TAU * 0.04, 0.78);
+
+  drawCapsule(rgba, -40, leftY + 22, leftX - 40, leftY + 8, 10, COLOR_CYAN, 0.08);
+  drawCapsule(rgba, WIDTH + 40, rightY + 14, rightX + 42, rightY + 4, 10, COLOR_HOT, 0.08);
+  drawCapsule(rgba, -40, leftY + 22, leftX - 40, leftY + 8, 3.2, COLOR_WHITE, 0.14);
+  drawCapsule(rgba, WIDTH + 40, rightY + 14, rightX + 42, rightY + 4, 3.2, COLOR_WHITE, 0.14);
+
+  drawThumbsUp(rgba, leftX, leftY, 174, {
+    hand: hexToRgb("#fff4dd"),
+    cuff: COLOR_CYAN,
+    glow: COLOR_PURPLE,
+    outline: COLOR_WHITE,
+  }, 0.96, -0.16);
+  drawThumbsUp(rgba, rightX, rightY, 168, {
+    hand: hexToRgb("#f4edff"),
+    cuff: COLOR_HOT,
+    glow: COLOR_CYAN,
+    outline: COLOR_WHITE,
+  }, 0.94, 0.16, true);
+
+  for (let echo = 0; echo < 6; echo += 1) {
+    const progress = mod01((time * 0.42) + (echo * 0.16));
+    const x = WIDTH * (0.26 + ((echo % 3) * 0.24)) + (Math.sin((progress * TAU) + echo) * 16);
+    const y = HEIGHT + 70 - (progress * (HEIGHT * 0.74));
+    drawThumbsUp(rgba, x, y, 64 + ((echo % 2) * 10), {
+      hand: echo % 2 === 0 ? hexToRgb("#fff4dd") : hexToRgb("#eef7ff"),
+      cuff: echo % 2 === 0 ? COLOR_PURPLE : COLOR_CYAN,
+      glow: echo % 2 === 0 ? COLOR_CYAN : COLOR_HOT,
+      outline: COLOR_WHITE,
+    }, 0.2, echo % 2 === 0 ? -0.18 : 0.18, echo % 3 === 0);
+  }
+
+  for (let spark = 0; spark < 18; spark += 1) {
+    const angle = (spark / 18) * TAU;
+    const radius = 108 + ((spark % 4) * 28);
+    const x = (WIDTH * 0.5) + (Math.cos(angle) * radius);
+    const y = HEIGHT * 0.56 + (Math.sin(angle) * radius * 0.46);
+    drawSpark(rgba, x, y, 4.8 + ((spark % 3) * 1.2), spark % 2 === 0 ? COLOR_CYAN : COLOR_HOT, 0.14);
+  }
+
+  return rgba;
+};
+
 const effects = [
   {
     output: "trh-chat-bingo-jackpot-explosion.apng",
@@ -3225,6 +3380,20 @@ const effects = [
     previewOutput: "trh-chat-diamond-lucky-halo.png",
     previewFrames: [{ time: 0.26, opacity: 1 }, { time: 0.56, opacity: 0.38 }, { time: 0.8, opacity: 0.2 }],
     render: renderDiamondLuckyHalo,
+  },
+  {
+    output: "trh-chat-thumbs-up-pop.apng",
+    previewOutput: "trh-chat-thumbs-up-pop.png",
+    previewFrames: [{ time: 0.2, opacity: 1 }, { time: 0.42, opacity: 0.46 }, { time: 0.72, opacity: 0.24 }],
+    render: renderThumbsUpPop,
+    enhanceOpacity: 0.05,
+  },
+  {
+    output: "trh-chat-double-like-rush.apng",
+    previewOutput: "trh-chat-double-like-rush.png",
+    previewFrames: [{ time: 0.24, opacity: 1 }, { time: 0.48, opacity: 0.42 }, { time: 0.74, opacity: 0.22 }],
+    render: renderDoubleLikeRush,
+    enhanceOpacity: 0.05,
   },
 ];
 
