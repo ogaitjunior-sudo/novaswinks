@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Download, Heart, Play } from "lucide-react";
+import { Download, Heart, Play, Volume2 } from "lucide-react";
 
 import {
   ApngPreviewSurface,
@@ -30,6 +30,7 @@ type WinkCardProps = {
   lottiePreviewUrl?: string;
   lottieStartAtProgress?: number;
   lottiePlaybackSpeed?: number;
+  hasSound?: boolean;
   onOpenPreview?: () => void;
   description?: string;
   eyebrow?: string;
@@ -56,6 +57,7 @@ export const WinkCard = ({
   lottiePreviewUrl,
   lottieStartAtProgress,
   lottiePlaybackSpeed,
+  hasSound = false,
   onOpenPreview,
   accentColor,
   className,
@@ -151,6 +153,18 @@ export const WinkCard = ({
 
         <div className="wink-card-media-overlay" />
         {hasAnimatedPreview ? <div className="wink-card-live-halo" aria-hidden="true" /> : null}
+        {hasSound ? (
+          <div className="wink-card-sound-badge" aria-label="Sound enabled">
+            <Volume2 className="h-3.5 w-3.5" />
+            <span>Sound</span>
+            <span className="wink-card-waveform" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+        ) : null}
 
         <button
           type="button"

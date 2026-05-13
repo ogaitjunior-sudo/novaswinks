@@ -576,6 +576,63 @@
     backdrop-filter: blur(12px);
   }
 
+  .wink-card-sound-badge {
+    position: absolute;
+    left: 0.85rem;
+    top: 0.85rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    min-height: 2rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--wink-accent) 46%, rgba(255, 255, 255, 0.22));
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--wink-accent) 24%, rgba(7, 10, 24, 0.88)), rgba(7, 10, 24, 0.72)),
+      rgba(5, 7, 18, 0.82);
+    padding: 0 0.68rem;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    box-shadow: 0 0 26px color-mix(in srgb, var(--wink-accent) 16%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .wink-card-waveform {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 0.85rem;
+  }
+
+  .wink-card-waveform i {
+    display: block;
+    width: 2px;
+    height: 0.28rem;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.78;
+    transform-origin: center;
+  }
+
+  .wink-card-shell:hover .wink-card-waveform i {
+    animation: soundWavePulse 720ms ease-in-out infinite;
+  }
+
+  .wink-card-shell:hover .wink-card-waveform i:nth-child(2) {
+    animation-delay: 90ms;
+  }
+
+  .wink-card-shell:hover .wink-card-waveform i:nth-child(3) {
+    animation-delay: 180ms;
+  }
+
+  .wink-card-shell:hover .wink-card-waveform i:nth-child(4) {
+    animation-delay: 270ms;
+  }
+
   .wink-card-play-button {
     z-index: 2;
     display: inline-flex;
@@ -1073,5 +1130,18 @@
     box-shadow:
       0 0 32px rgba(114, 88, 255, 0.32),
       0 0 58px color-mix(in srgb, var(--wink-accent) 16%, transparent);
+  }
+}
+
+@keyframes soundWavePulse {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    opacity: 0.58;
+  }
+
+  50% {
+    transform: scaleY(1.9);
+    opacity: 1;
   }
 }

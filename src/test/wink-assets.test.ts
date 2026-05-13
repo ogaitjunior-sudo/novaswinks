@@ -129,9 +129,10 @@ describe("wink assets", () => {
     }
   }, 25000);
 
-  it("ships separate mp3 files for the stars sound experience", async () => {
-    const soundAssets = fullscreenWinks.filter((asset) => asset.fullscreenCategory === "Stars Sound Experience");
-    expect(soundAssets).toHaveLength(5);
+  it("ships separate mp3 files for the sound experience packs", async () => {
+    const soundAssets = fullscreenWinks.filter((asset) => asset.audioPath);
+    expect(soundAssets.filter((asset) => asset.fullscreenCategory === "Stars Sound Experience")).toHaveLength(5);
+    expect(soundAssets.filter((asset) => asset.fullscreenCategory === "Flowers Sound Experience")).toHaveLength(5);
 
     for (const asset of soundAssets) {
       expect(asset.audioPath).toBeTruthy();

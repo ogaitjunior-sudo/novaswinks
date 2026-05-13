@@ -53,7 +53,7 @@ const sidebarItems = [
   { label: "WINK STUDIO", icon: Star, href: "#" },
   { label: "CHAT WINKS", icon: MessageSquare, href: "#chat-winks" },
   { label: "FULL BINGO WINKS", icon: Monitor, href: "#fullscreen-winks" },
-  { label: "SOUND", icon: Volume2, href: "#fullscreen-winks", fullscreenCategory: "Stars Sound Experience" as const },
+  { label: "SOUND", icon: Volume2, href: "#fullscreen-winks", soundOnly: true },
   { label: "FAVORITES", icon: Heart, href: "#" },
   { label: "DOWNLOADS", icon: Download, href: "#" },
   { label: "CATEGORIES", icon: LayoutGrid, href: "#" },
@@ -82,7 +82,7 @@ const Index = () => {
   const [selectedAsset, setSelectedAsset] = useState<WinkAsset | null>(null);
   const [previewSessionId, setPreviewSessionId] = useState(0);
   const [selectedChatCategory, setSelectedChatCategory] = useState<ChatWinkCategory | "all">("all");
-  const [selectedFullscreenCategory, setSelectedFullscreenCategory] = useState<FullscreenWinkCategory | "all">("all");
+  const [selectedFullscreenCategory, setSelectedFullscreenCategory] = useState<FullscreenWinkCategory | "all" | "sound">("all");
   const [assetCacheVersion, setAssetCacheVersion] = useState("");
   const [cacheStatus, setCacheStatus] = useState("");
   const hasChatWinks = chatWinks.length > 0;
@@ -92,6 +92,8 @@ const Index = () => {
     : chatWinks.filter((asset) => asset.chatCategory === selectedChatCategory);
   const visibleFullscreenWinks = selectedFullscreenCategory === "all"
     ? fullscreenWinks
+    : selectedFullscreenCategory === "sound"
+      ? fullscreenWinks.filter((asset) => Boolean(asset.audioPath))
     : fullscreenWinks.filter((asset) => asset.fullscreenCategory === selectedFullscreenCategory);
 
   const handleClearSiteCache = async () => {
@@ -135,20 +137,22 @@ const Index = () => {
           </div>
 
           <nav className="studio-sidebar-nav">
-            {sidebarItems.map(({ label, icon: Icon, href, fullscreenCategory }) => (
+            {sidebarItems.map(({ label, icon: Icon, href, fullscreenCategory, soundOnly }) => (
               <a
                 key={label}
                 href={href}
                 className={`studio-sidebar-link ${
-                  (label === "WINK STUDIO" && selectedFullscreenCategory === "all") || selectedFullscreenCategory === fullscreenCategory ? "is-active" : ""
+                  (label === "WINK STUDIO" && selectedFullscreenCategory === "all") ||
+                  (soundOnly && selectedFullscreenCategory === "sound") ||
+                  selectedFullscreenCategory === fullscreenCategory ? "is-active" : ""
                 }`}
                 onClick={(event) => {
-                  if (!fullscreenCategory) {
+                  if (!fullscreenCategory && !soundOnly) {
                     return;
                   }
 
                   event.preventDefault();
-                  setSelectedFullscreenCategory(fullscreenCategory);
+                  setSelectedFullscreenCategory(soundOnly ? "sound" : fullscreenCategory);
                   document.querySelector("#fullscreen-winks")?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
               >
@@ -363,6 +367,7 @@ const Index = () => {
                         lottiePreviewUrl={withCacheVersion(asset.filePath, assetCacheVersion)}
                         lottieStartAtProgress={0}
                         lottiePlaybackSpeed={getFullscreenPreviewSpeed(asset)}
+                        hasSound={Boolean(asset.audioPath)}
                         downloadUrl={asset.filePath}
                         downloadLabel="BAIXAR JSON"
                         accentColor={asset.accent}
