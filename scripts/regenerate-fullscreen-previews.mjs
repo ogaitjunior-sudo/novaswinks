@@ -1491,6 +1491,67 @@ const renderBingoBallFormationWink = () => {
   return rgba;
 };
 
+const renderImportedBingoAnimation = (variant = "classic") => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  const isElectric = variant === "electric";
+  const isFinale = variant === "finale";
+  const isSpeed = variant === "speed";
+  const isConfetti = variant === "confetti";
+  const sourceBalls = [
+    { letter: "B", color: hexToRgb("#0278df"), x: isFinale ? 500 : 520, y: isFinale ? 310 : 330, from: [-120, HEIGHT * 0.36] },
+    { letter: "I", color: hexToRgb("#f70900"), x: 735, y: isFinale ? 260 : 275, from: [WIDTH * 0.42, -120] },
+    { letter: "N", color: hexToRgb("#9610b8"), x: 960, y: isFinale ? 230 : 250, from: [WIDTH + 120, HEIGHT * 0.34] },
+    { letter: "G", color: hexToRgb("#36af0a"), x: 1185, y: isFinale ? 260 : 275, from: [WIDTH * 0.28, HEIGHT + 120] },
+    { letter: "O", color: hexToRgb("#f7c901"), x: isFinale ? 1420 : 1400, y: isFinale ? 310 : 330, from: [WIDTH + 120, HEIGHT + 120] },
+  ];
+
+  drawCircle(rgba, cx, cy, isFinale ? 660 : 580, isElectric ? hexToRgb("#58c7ff") : hexToRgb("#f7c901"), isFinale ? 0.09 : 0.07, 170);
+  drawCircle(rgba, cx, cy, isElectric ? 430 : 390, hexToRgb("#0278df"), isElectric ? 0.06 : 0.045, 132);
+  drawRing(rgba, cx, cy, isFinale ? 310 : 265, isSpeed ? 22 : 16, isElectric ? hexToRgb("#58c7ff") : hexToRgb("#f7c901"), isFinale ? 0.26 : 0.2);
+  drawRing(rgba, cx, cy, isFinale ? 520 : 455, 9, hexToRgb("#ffffff"), 0.12);
+
+  if (isConfetti) {
+    const rng = createRng(2323);
+    for (let piece = 0; piece < 90; piece += 1) {
+      drawSpark(rgba, 80 + rng() * (WIDTH - 160), 60 + rng() * (HEIGHT - 120), 5 + rng() * 10, sourceBalls[piece % sourceBalls.length].color, 0.18 + rng() * 0.18);
+    }
+  }
+
+  if (isElectric) {
+    for (let index = 0; index < sourceBalls.length; index += 1) {
+      const a = sourceBalls[index];
+      const b = sourceBalls[(index + 1) % sourceBalls.length];
+      drawCapsule(rgba, a.x, a.y, b.x, b.y, 8, hexToRgb("#58c7ff"), 0.2);
+      drawCapsule(rgba, a.x, a.y, b.x, b.y, 2.6, hexToRgb("#ffffff"), 0.42);
+    }
+  }
+
+  drawBlockText(rgba, "BINGO!", cx, cy + (isFinale ? 126 : 96), isFinale ? 270 : 230, hexToRgb("#fff4b8"), isElectric ? hexToRgb("#58c7ff") : hexToRgb("#f7c901"), 0.9);
+
+  for (const ball of sourceBalls) {
+    drawCapsule(rgba, ball.from[0], ball.from[1], ball.x, ball.y, isSpeed ? 10 : 6, ball.color, isSpeed ? 0.22 : 0.12);
+    drawCapsule(rgba, ball.from[0], ball.from[1], ball.x, ball.y, isSpeed ? 3.4 : 2.4, hexToRgb("#ffffff"), isSpeed ? 0.42 : 0.28);
+    drawBingoLetterBall(rgba, ball.x, ball.y, isFinale ? 98 : 90, ball.color, ball.letter, 0.98);
+  }
+
+  const fireworkColors = ["#FF6B6B", "#FFE66D", "#4ECDC4", "#FF9F43", "#6C5CE7", "#F38181", "#00D2D3", "#FECA57"].map(hexToRgb);
+  const sparkCount = isFinale ? 110 : isSpeed ? 92 : 72;
+  for (let spark = 0; spark < sparkCount; spark += 1) {
+    const angle = (spark / sparkCount) * TAU;
+    const distance = 180 + ((spark % 10) * (isFinale ? 76 : 68));
+    drawSpark(rgba, cx + Math.cos(angle) * distance, cy + Math.sin(angle) * distance * 0.56, 7 + (spark % 5), fireworkColors[spark % fireworkColors.length], 0.24);
+  }
+  drawSpark(rgba, cx, cy + 30, 78, hexToRgb("#ffffff"), 0.44);
+  return rgba;
+};
+
+const renderBingoBounceHighSpeedCollision = () => renderImportedBingoAnimation("speed");
+const renderBingoBounceConfettiCelebration = () => renderImportedBingoAnimation("confetti");
+const renderBingoBounceElectricJackpot = () => renderImportedBingoAnimation("electric");
+const renderBingoBounceMegaFinale = () => renderImportedBingoAnimation("finale");
+
 const renderGoldenBingoCascade = () => {
   const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
   const rng = createRng(1941);
@@ -3735,6 +3796,27 @@ const drawRose = (buffer, cx, cy, radius, alpha = 1) => {
   drawCircle(buffer, cx, cy, radius * 0.16, floralColors.roseLight, alpha * 0.42);
 };
 
+const drawGoldenRose = (buffer, cx, cy, radius, alpha = 1) => {
+  drawCircle(buffer, cx, cy, radius * 1.48, floralColors.gold, alpha * 0.12, radius * 0.42);
+  for (let index = 0; index < 16; index += 1) {
+    const progress = index / 15;
+    const angle = progress * TAU * 2.45;
+    const distance = radius * (0.08 + (progress * 0.58));
+    const size = radius * (0.42 - (progress * 0.1));
+    drawPetal(
+      buffer,
+      cx + (Math.cos(angle) * distance),
+      cy + (Math.sin(angle) * distance * 0.72),
+      size * 0.7,
+      size * 1.18,
+      angle + 0.8,
+      index % 2 === 0 ? floralColors.gold : floralColors.roseLight,
+      alpha * (0.78 + (progress * 0.18)),
+    );
+  }
+  drawCircle(buffer, cx, cy, radius * 0.16, floralColors.white, alpha * 0.5);
+};
+
 const drawFloralSparkles = (buffer, seed, centerX = WIDTH * 0.5, centerY = HEIGHT * 0.5, count = 42) => {
   const rng = createRng(seed);
   for (let spark = 0; spark < count; spark += 1) {
@@ -3857,6 +3939,105 @@ const renderBloomBurstFinale = () => {
     drawPetal(rgba, cx + (Math.cos(angle) * distance), cy + (Math.sin(angle) * distance * 0.6), 18 + (rng() * 24), 44 + (rng() * 46), angle, [floralColors.rose, floralColors.sakura, floralColors.lavender, floralColors.sakuraLight][petal % 4], 0.4 + (rng() * 0.3));
   }
   drawFloralSparkles(rgba, 1142, cx, cy, 42);
+  return rgba;
+};
+
+const renderGiantRoseReveal = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const rng = createRng(1151);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  drawCircle(rgba, cx, cy, 390, floralColors.red, 0.055, 128);
+  drawRing(rgba, cx, cy, 300, 10, floralColors.roseLight, 0.12);
+  for (let petal = 0; petal < 58; petal += 1) {
+    const angle = rng() * TAU;
+    const distance = 130 + (rng() * 780);
+    drawPetal(rgba, cx + (Math.cos(angle) * distance), cy + (Math.sin(angle) * distance * 0.58), 18 + (rng() * 28), 42 + (rng() * 54), angle + 0.7, [floralColors.red, floralColors.rose, floralColors.roseLight][petal % 3], 0.42 + (rng() * 0.34));
+  }
+  drawRose(rgba, cx, cy, 248, 0.98);
+  drawFloralSparkles(rgba, 1152, cx, cy, 42);
+  return rgba;
+};
+
+const renderRosePetalStorm = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const rng = createRng(1161);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  drawCircle(rgba, cx, cy, 420, floralColors.rose, 0.05, 132);
+  for (let petal = 0; petal < 92; petal += 1) {
+    const angle = rng() * TAU;
+    const distance = 80 + (rng() * 900);
+    const sweep = angle + (petal % 2 === 0 ? 0.9 : -0.7);
+    const x = cx + (Math.cos(angle) * distance);
+    const y = cy + (Math.sin(angle) * distance * 0.62);
+    drawCapsule(rgba, x - (Math.cos(sweep) * 54), y - (Math.sin(sweep) * 24), x, y, 2.2, floralColors.roseLight, 0.08);
+    drawPetal(rgba, x, y, 14 + (rng() * 24), 36 + (rng() * 50), sweep, [floralColors.red, floralColors.rose, floralColors.sakura, floralColors.roseLight][petal % 4], 0.36 + (rng() * 0.34));
+  }
+  drawRose(rgba, cx, cy, 198, 0.66);
+  drawFloralSparkles(rgba, 1162, cx, cy, 34);
+  return rgba;
+};
+
+const renderRoseHeartBloom = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  drawCircle(rgba, cx, cy, 390, floralColors.rose, 0.05, 128);
+  drawRing(rgba, cx, cy, 330, 9, floralColors.roseLight, 0.1);
+  for (let index = 0; index < 34; index += 1) {
+    const t = (index / 34) * TAU;
+    const x = 16 * Math.sin(t) ** 3;
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    drawPetal(rgba, cx + (x * 29), cy + (y * 24), 34 + ((index % 3) * 6), 76 + ((index % 4) * 6), t + 1.1, index % 2 === 0 ? floralColors.red : floralColors.rose, 0.9);
+  }
+  drawRose(rgba, cx, cy + 10, 138, 0.96);
+  drawFloralSparkles(rgba, 1171, cx, cy, 40);
+  return rgba;
+};
+
+const renderGoldenRoseJackpot = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const rng = createRng(1181);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  drawCircle(rgba, cx, cy, 390, floralColors.gold, 0.07, 132);
+  drawCapsule(rgba, cx, cy + 240, cx, cy + 40, 14, floralColors.gold, 0.36);
+  drawCapsule(rgba, cx, cy + 240, cx, cy + 40, 5, floralColors.white, 0.28);
+  for (let ray = 0; ray < 26; ray += 1) {
+    const angle = (ray / 26) * TAU;
+    const distance = 240 + ((ray % 5) * 70);
+    drawCapsule(rgba, cx, cy, cx + (Math.cos(angle) * distance), cy + (Math.sin(angle) * distance * 0.56), 4, floralColors.gold, 0.12);
+  }
+  for (let spark = 0; spark < 46; spark += 1) {
+    const angle = rng() * TAU;
+    const distance = 130 + (rng() * 780);
+    drawSpark(rgba, cx + (Math.cos(angle) * distance), cy + (Math.sin(angle) * distance * 0.58), 7 + (rng() * 14), spark % 2 === 0 ? floralColors.gold : floralColors.white, 0.18 + (rng() * 0.18));
+  }
+  drawGoldenRose(rgba, cx, cy - 68, 226, 0.98);
+  return rgba;
+};
+
+const renderRoseGrandFinale = () => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const rng = createRng(1191);
+  const cx = WIDTH * 0.5;
+  const cy = HEIGHT * 0.52;
+  drawCircle(rgba, cx, cy, 450, floralColors.rose, 0.05, 138);
+  const roses = [
+    [410, 320, 116],
+    [960, 430, 216],
+    [1500, 330, 122],
+    [660, 690, 108],
+    [1280, 670, 106],
+  ];
+  for (const [x, y, radius] of roses) drawRose(rgba, x, y, radius, 0.92);
+  for (let petal = 0; petal < 74; petal += 1) {
+    const angle = rng() * TAU;
+    const distance = 110 + (rng() * 900);
+    drawPetal(rgba, cx + (Math.cos(angle) * distance), cy + (Math.sin(angle) * distance * 0.64), 16 + (rng() * 26), 40 + (rng() * 54), angle + (rng() * 1.2), [floralColors.red, floralColors.rose, floralColors.sakura, floralColors.gold, floralColors.roseLight][petal % 5], 0.34 + (rng() * 0.34));
+  }
+  drawFloralSparkles(rgba, 1192, cx, cy, 54);
   return rgba;
 };
 
@@ -5219,6 +5400,11 @@ const effects = [
   { output: "trh-full-rose-swirl-reveal.png", render: renderRoseSwirlReveal, overlay: false },
   { output: "trh-full-floral-heart-bloom.png", render: renderFloralHeartBloom, overlay: false },
   { output: "trh-full-bloom-burst-finale.png", render: renderBloomBurstFinale, overlay: false },
+  { output: "trh-full-giant-rose-reveal.png", render: renderGiantRoseReveal, overlay: false },
+  { output: "trh-full-rose-petal-storm.png", render: renderRosePetalStorm, overlay: false },
+  { output: "trh-full-rose-heart-bloom.png", render: renderRoseHeartBloom, overlay: false },
+  { output: "trh-full-golden-rose-jackpot.png", render: renderGoldenRoseJackpot, overlay: false },
+  { output: "trh-full-rose-grand-finale.png", render: renderRoseGrandFinale, overlay: false },
   { output: "trh-full-classic-countdown-bingo.png", render: renderClassicCountdownBingo, overlay: false },
   { output: "trh-full-bingo-letter-build.png", render: renderBingoLetterBuild, overlay: false },
   { output: "trh-full-gold-jackpot-countdown.png", render: renderGoldJackpotCountdown, overlay: false },
@@ -5284,6 +5470,11 @@ const effects = [
   { output: "trh-full-jackpot-fever.png", render: renderJackpotFever, overlay: false },
   { output: "trh-full-bingo-shock.png", render: renderBingoShock, overlay: false },
   { output: "trh-full-bingo-ball-formation-wink.png", render: renderBingoBallFormationWink, overlay: false },
+  { output: "trh-full-imported-bingo-animation.png", render: renderImportedBingoAnimation, overlay: false },
+  { output: "trh-full-bingo-bounce-high-speed-collision.png", render: renderBingoBounceHighSpeedCollision, overlay: false },
+  { output: "trh-full-bingo-bounce-confetti-celebration.png", render: renderBingoBounceConfettiCelebration, overlay: false },
+  { output: "trh-full-bingo-bounce-electric-jackpot.png", render: renderBingoBounceElectricJackpot, overlay: false },
+  { output: "trh-full-bingo-bounce-mega-finale.png", render: renderBingoBounceMegaFinale, overlay: false },
   { output: "trh-full-omg-big-win.png", render: renderOmgBigWin, overlay: false },
   { output: "trh-full-hot-streak.png", render: renderHotStreak, overlay: false },
   { output: "trh-full-lucky-diamond-hit.png", render: renderLuckyDiamondHit, overlay: false },

@@ -403,6 +403,58 @@ const bingoLetterBallGroup = (name, radius, accentColor) =>
     ]),
   ]);
 
+const BINGO_LETTER_STROKES = {
+  B: [[[0.3, -0.5], [0.3, 0.5]], [[0.3, -0.5], [0.0, -0.5], [-0.16, -0.34], [0.0, -0.16], [0.3, -0.16]], [[0.3, -0.16], [0.0, -0.16], [-0.18, 0.02], [0.0, 0.22], [0.3, 0.22]], [[0.3, 0.22], [0.3, 0.5]]],
+  I: [[[0, -0.5], [0, 0.5]], [[-0.24, -0.5], [0.24, -0.5]], [[-0.24, 0.5], [0.24, 0.5]]],
+  N: [[[-0.28, 0.5], [-0.28, -0.5]], [[-0.28, -0.5], [0.28, 0.5]], [[0.28, 0.5], [0.28, -0.5]]],
+  G: [[[0.28, -0.36], [0.04, -0.5], [-0.28, -0.36], [-0.34, 0.16], [-0.1, 0.5], [0.28, 0.38]], [[0.28, 0.38], [0.28, 0.1], [0.02, 0.1]]],
+  O: [[[0, -0.5], [0.28, -0.36], [0.34, 0], [0.28, 0.36], [0, 0.5], [-0.28, 0.36], [-0.34, 0], [-0.28, -0.36], [0, -0.5]]],
+};
+
+const bingoLetterMarkGroup = (name, radius, letter, color = rgb("#151515")) =>
+  group(name, (BINGO_LETTER_STROKES[letter] ?? BINGO_LETTER_STROKES.O).map((stroke, index) => {
+    const size = radius * 0.64;
+    return lineStrokeGroup(
+      `Letter ${letter} Stroke ${index + 1}`,
+      stroke.map(([x, y]) => [x * size, y * size]),
+      rgb("#ffffff"),
+      Math.max(3.5, radius * 0.09),
+      color,
+      Math.max(2.8, radius * 0.055),
+      20,
+      94,
+    );
+  }));
+
+const coloredBingoLetterBallGroup = (name, radius, bodyColor, letter) =>
+  group(name, [
+    group("Colored Ball Glow", [
+      ellipseShape("Colored Ball Glow Path", radius * 2.36, radius * 2.36),
+      fillNode("Colored Ball Glow Fill", bodyColor, 16),
+    ]),
+    group("Colored Ball Base", [
+      ellipseShape("Colored Ball Base Path", radius * 2, radius * 2),
+      fillNode("Colored Ball Base Fill", bodyColor, 98),
+    ]),
+    group("Colored Ball Rim", [
+      ellipseShape("Colored Ball Rim Path", radius * 1.86, radius * 1.86),
+      strokeNode("Colored Ball Rim Stroke", rgb("#ffffff"), Math.max(4, radius * 0.09), 74),
+    ]),
+    group("Colored Ball Inner Disc", [
+      ellipseShape("Colored Ball Inner Disc Path", radius * 0.92, radius * 0.92),
+      fillNode("Colored Ball Inner Disc Fill", rgb("#fffdf5"), 96),
+      strokeNode("Colored Ball Inner Disc Stroke", bodyColor, Math.max(3, radius * 0.07), 64),
+    ]),
+    bingoLetterMarkGroup("Colored Ball Letter", radius, letter, rgb("#151515")),
+    group("Colored Ball Shine", [
+      ellipseShape("Colored Ball Shine Path", radius * 0.44, radius * 0.26),
+      fillNode("Colored Ball Shine Fill", rgb("#ffffff"), 28),
+    ], {
+      position: [-(radius * 0.24), -(radius * 0.28)],
+      rotation: -20,
+    }),
+  ]);
+
 const shardGroup = (name, width, height, fillColor, strokeColor) =>
   group(name, [
     group("Shard Fill", [
@@ -1519,6 +1571,82 @@ const retimeFullscreenWink = (animation, targetFrames = TARGET_WINK_FRAMES) => (
       ? Object.fromEntries(
         Object.entries(layer.ks).map(([key, property]) => [key, retimeAnimatedProperty(property, targetFrames)]),
       )
+      : layer.ks,
+  })),
+});
+
+const ensureAnimatedOpacitySignal = (animation) => {
+  if ((animation.layers ?? []).some((layer) => layer.ks?.o?.a === 1 || layer.ks?.s?.a === 1)) {
+    return animation;
+  }
+
+  const firstShapeLayerIndex = (animation.layers ?? []).findIndex((layer) => layer.ks?.o);
+  if (firstShapeLayerIndex < 0) {
+    return animation;
+  }
+
+  const layers = animation.layers.map((layer, index) => {
+    if (index !== firstShapeLayerIndex) {
+      return layer;
+    }
+
+    const opacity = layer.ks.o;
+    const value = Array.isArray(opacity?.k) ? opacity.k[0] : opacity?.k ?? 100;
+    return {
+      ...layer,
+      ks: {
+        ...layer.ks,
+        o: {
+          a: 1,
+          k: [
+            {
+              t: animation.ip ?? 0,
+              s: [value],
+              e: [value],
+              i: { x: [0.78], y: [1] },
+              o: { x: [0.22], y: [0] },
+            },
+            { t: animation.op ?? 1, s: [value] },
+          ],
+        },
+      },
+    };
+  });
+
+  return { ...animation, layers };
+};
+
+const normalizeAnimatedKeyframeHandles = (animation) => ({
+  ...animation,
+  layers: (animation.layers ?? []).map((layer) => ({
+    ...layer,
+    ks: layer.ks
+      ? Object.fromEntries(Object.entries(layer.ks).map(([key, property]) => {
+        if (property?.a !== 1 || !Array.isArray(property.k)) {
+          return [key, property];
+        }
+
+        const normalized = property.k.map((keyframe, index) => {
+          if (index === property.k.length - 1) {
+            return keyframe;
+          }
+
+          const next = property.k[index + 1];
+          const currentValue = keyframe.s ?? keyframe.e ?? property.k[index - 1]?.e ?? property.k[index - 1]?.s ?? [0];
+          const nextValue = keyframe.e ?? next?.s ?? next?.e ?? currentValue;
+          const dimensions = Array.isArray(currentValue) ? currentValue.length : 1;
+
+          return {
+            ...keyframe,
+            s: currentValue,
+            e: nextValue,
+            i: keyframe.i ?? { x: linearEaseAxis(dimensions, 0.78), y: linearEaseAxis(dimensions, 1) },
+            o: keyframe.o ?? { x: linearEaseAxis(dimensions, 0.22), y: linearEaseAxis(dimensions, 0) },
+          };
+        });
+
+        return [key, { ...property, k: normalized }];
+      }))
       : layer.ks,
   })),
 });
@@ -4008,6 +4136,244 @@ const buildBingoBallFormationWink = () => {
   });
 
   return makeAnimation("BINGO Ball Formation Wink", layers);
+};
+
+const bounceRevealVariantConfig = {
+  classic: {
+    name: "Classic Bounce Reveal",
+    seed: 15201,
+    center: [WIDTH / 2, HEIGHT * 0.5],
+    targetY: HEIGHT * 0.5,
+    startOffset: 0,
+    bounceShift: 0,
+    finalFrame: 160,
+    fadeFrame: 179,
+    heroStart: 138,
+    heroPeak: 160,
+    heroEnd: 179,
+    ballRadius: 84,
+    sparkCount: 60,
+    confettiCount: 52,
+    ringCount: 5,
+    confettiStart: 124,
+  },
+  speed: {
+    name: "High Speed Collision",
+    seed: 15221,
+    center: [WIDTH / 2, HEIGHT * 0.5],
+    targetY: HEIGHT * 0.5,
+    startOffset: -16,
+    bounceShift: 90,
+    finalFrame: 118,
+    fadeFrame: 176,
+    heroStart: 116,
+    heroPeak: 136,
+    heroEnd: 176,
+    ballRadius: 86,
+    sparkCount: 82,
+    confettiCount: 64,
+    ringCount: 7,
+    confettiStart: 112,
+  },
+  confetti: {
+    name: "Confetti Celebration BINGO",
+    seed: 15241,
+    center: [WIDTH / 2, HEIGHT * 0.5],
+    targetY: HEIGHT * 0.5,
+    startOffset: 0,
+    bounceShift: -40,
+    finalFrame: 150,
+    fadeFrame: 179,
+    heroStart: 132,
+    heroPeak: 154,
+    heroEnd: 179,
+    ballRadius: 84,
+    sparkCount: 52,
+    confettiCount: 96,
+    ringCount: 4,
+    confettiStart: 18,
+  },
+  electric: {
+    name: "Electric Jackpot BINGO",
+    seed: 15261,
+    center: [WIDTH / 2, HEIGHT * 0.5],
+    targetY: HEIGHT * 0.5,
+    startOffset: 4,
+    bounceShift: 50,
+    finalFrame: 146,
+    fadeFrame: 179,
+    heroStart: 128,
+    heroPeak: 150,
+    heroEnd: 179,
+    ballRadius: 84,
+    sparkCount: 76,
+    confettiCount: 46,
+    ringCount: 7,
+    confettiStart: 126,
+    electric: true,
+  },
+  finale: {
+    name: "Mega BINGO Finale",
+    seed: 15281,
+    center: [WIDTH / 2, HEIGHT * 0.5],
+    targetY: HEIGHT * 0.5,
+    startOffset: 10,
+    bounceShift: -80,
+    finalFrame: 154,
+    fadeFrame: 179,
+    heroStart: 126,
+    heroPeak: 154,
+    heroEnd: 179,
+    ballRadius: 92,
+    sparkCount: 100,
+    confettiCount: 112,
+    ringCount: 8,
+    confettiStart: 112,
+  },
+};
+
+const buildImportedBingoAnimation = (variant = "classic") => {
+  const config = bounceRevealVariantConfig[variant] ?? bounceRevealVariantConfig.classic;
+  let nextIndex = 1;
+  const layers = [];
+  const center = config.center;
+  const targetY = config.targetY;
+  const balls = [
+    { letter: "B", color: rgb("#0278df"), target: [528, targetY], from: [-170, HEIGHT * 0.38], bounceA: [260, HEIGHT * 0.22], bounceB: [720, HEIGHT * 0.74], bounceC: [420, HEIGHT * 0.48], spin: 520 },
+    { letter: "I", color: rgb("#f70900"), target: [744, targetY], from: [WIDTH * 0.42, -170], bounceA: [900, HEIGHT * 0.22], bounceB: [560, HEIGHT * 0.72], bounceC: [820, HEIGHT * 0.43], spin: -480 },
+    { letter: "N", color: rgb("#9610b8"), target: [960, targetY], from: [WIDTH + 170, HEIGHT * 0.34], bounceA: [1370, HEIGHT * 0.25], bounceB: [780, HEIGHT * 0.7], bounceC: [990, HEIGHT * 0.4], spin: 560 },
+    { letter: "G", color: rgb("#36af0a"), target: [1176, targetY], from: [WIDTH * 0.28, HEIGHT + 170], bounceA: [640, HEIGHT * 0.78], bounceB: [1280, HEIGHT * 0.26], bounceC: [1110, HEIGHT * 0.62], spin: -520 },
+    { letter: "O", color: rgb("#f7c901"), target: [1392, targetY], from: [WIDTH + 170, HEIGHT + 170], bounceA: [1540, HEIGHT * 0.76], bounceB: [1190, HEIGHT * 0.24], bounceC: [1450, HEIGHT * 0.58], spin: 500 },
+  ];
+
+  layers.push(buildBingoBallsGlowLayer(nextIndex, `${config.name} Casino Glow`, variant === "electric" ? rgb("#58c7ff") : rgb("#f7c901"), center));
+  nextIndex += 1;
+
+  for (const [index, ball] of balls.entries()) {
+    const early = config.startOffset;
+    const bounceLift = config.bounceShift;
+    const positionFrames = [
+      { t: 0, s: [ball.from[0], ball.from[1], 0] },
+      { t: clampFrame(30 + early + index * 3), s: [ball.bounceA[0], ball.bounceA[1] + bounceLift, 0] },
+      { t: clampFrame(66 + early + index * 2), s: [ball.bounceB[0], ball.bounceB[1] - bounceLift, 0] },
+      { t: clampFrame(104 + early + index * 2), s: [ball.bounceC[0], ball.bounceC[1] + (bounceLift * 0.25), 0] },
+      ...(variant === "finale" ? [{ t: 132, s: [ball.target[0], HEIGHT * 0.22, 0] }] : []),
+      { t: clampFrame(config.finalFrame - 20), s: [ball.bounceC[0], ball.bounceC[1], 0] },
+      { t: clampFrame(config.finalFrame), s: [ball.target[0], ball.target[1], 0] },
+      { t: clampFrame(config.fadeFrame - 8), s: [ball.target[0], ball.target[1], 0] },
+      { t: clampFrame(config.fadeFrame), s: [ball.target[0], ball.target[1] - 30, 0] },
+    ];
+    const scaleFrames = [
+      { t: 0, s: [42, 42, 100] },
+      { t: clampFrame(28 + early + index * 3), s: [variant === "speed" ? 132 : 116, variant === "speed" ? 132 : 116, 100] },
+      { t: clampFrame(38 + early + index * 3), s: [94, 94, 100] },
+      { t: clampFrame(72 + early + index * 2), s: [108, 108, 100] },
+      { t: clampFrame(config.finalFrame), s: [100, 100, 100] },
+      { t: clampFrame(config.fadeFrame - 8), s: [106, 106, 100] },
+      { t: clampFrame(config.fadeFrame), s: [72, 72, 100] },
+    ];
+    const opacityFrames = [
+      { t: 0, s: [0] },
+      { t: 8 + index * 3, s: [100] },
+      { t: clampFrame(config.fadeFrame - 8), s: [100] },
+      { t: clampFrame(config.fadeFrame), s: [0] },
+    ];
+
+    layers.push(buildTextLayer({
+      index: nextIndex,
+      name: `Imported Bingo Letter ${ball.letter}`,
+      text: ball.letter,
+      fontSize: 88,
+      fillColor: rgb("#151515"),
+      strokeColor: rgb("#ffffff"),
+      strokeWidth: 2,
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      inFrame: 0,
+      outFrame: DURATION_FRAMES,
+    }));
+    nextIndex += 1;
+    layers.push(buildLayer({
+      index: nextIndex,
+      name: `Imported Bingo Ball ${ball.letter}`,
+      shapes: [coloredBingoLetterBallGroup(`Imported Glossy Ball ${ball.letter}`, 84, ball.color, ball.letter)],
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      rotationFrames: [
+        { t: 0, s: [index % 2 === 0 ? -32 : 28] },
+        { t: clampFrame(104 + early + index * 2), s: [ball.spin * (variant === "speed" ? 1.4 : 1)] },
+        { t: clampFrame(config.finalFrame), s: [0] },
+        { t: clampFrame(config.fadeFrame), s: [30 * (index - 2)] },
+      ],
+      inFrame: 0,
+      outFrame: DURATION_FRAMES,
+    }));
+    nextIndex += 1;
+  }
+
+  if (config.electric) {
+    for (let line = 0; line < balls.length; line += 1) {
+      const a = balls[line].target;
+      const b = balls[(line + 1) % balls.length].target;
+      layers.push(buildLayer({
+        index: nextIndex,
+        name: `Electric Bingo Connector ${line + 1}`,
+        shapes: [lineStrokeGroup("Electric Connector Stroke", [[a[0] - center[0], a[1] - center[1]], [b[0] - center[0], b[1] - center[1]]], rgb("#58c7ff"), 16, rgb("#ffffff"), 4, 18, 80)],
+        positionFrames: [{ t: 0, s: [center[0], center[1], 0] }],
+        opacityFrames: [{ t: 0, s: [0] }, { t: 56, s: [0] }, { t: 88, s: [84] }, { t: 132, s: [74] }, { t: 160, s: [0] }],
+        scaleFrames: [{ t: 56, s: [80, 80, 100] }, { t: 132, s: [112, 112, 100] }],
+        inFrame: 56,
+        outFrame: 162,
+      }));
+      nextIndex += 1;
+    }
+  }
+
+  const fireworks = buildRadialBurstLayers(nextIndex, {
+    seed: config.seed,
+    count: config.sparkCount,
+    center,
+    minRadius: 120,
+    maxRadius: variant === "finale" ? 1040 : 860,
+    startFrame: config.heroStart - 18,
+    duration: 62,
+    palette: [rgb("#FF6B6B"), rgb("#FFE66D"), rgb("#4ECDC4"), rgb("#FF9F43"), rgb("#6C5CE7"), rgb("#F38181"), rgb("#00D2D3"), rgb("#FECA57")],
+    sizeRange: [7, 18],
+    shapeFactory: ({ size, color, index }) => index % 5 === 0 ? [ringGroup("Imported Firework Ring", size * 2.8, color, rgb("#ffffff"), Math.max(2, size * 0.2))] : [sparkleGroup("Imported Firework Spark", size, color, rgb("#ffffff"))],
+    scaleFrom: 18,
+    scaleTo: 126,
+    travelYScale: 0.56,
+    rotationRange: [-180, 180],
+  });
+  layers.push(...fireworks);
+  nextIndex += fireworks.length;
+
+  const confetti = buildRadialBurstLayers(nextIndex, {
+    seed: config.seed + 1,
+    count: config.confettiCount,
+    center,
+    minRadius: 140,
+    maxRadius: variant === "finale" ? 960 : 780,
+    startFrame: config.confettiStart,
+    duration: variant === "confetti" ? 156 : 54,
+    palette: balls.map((ball) => ball.color),
+    sizeRange: [12, 30],
+    shapeFactory: ({ size, color, index }) => [confettiGroup(`Imported Confetti ${index}`, size * 0.9, size * 0.48, color, rgb("#ffffff"))],
+    scaleFrom: 18,
+    scaleTo: 110,
+    travelYScale: 0.68,
+    rotationRange: [-220, 220],
+  });
+  layers.push(...confetti);
+  nextIndex += confetti.length;
+
+  layers.push(...buildRingPulseLayers(nextIndex, { seed: config.seed + 2, count: config.ringCount, center, radiusRange: [190, variant === "finale" ? 680 : 560], widthRange: [7, variant === "speed" ? 20 : 16], palette: [rgb("#f7c901"), variant === "electric" ? rgb("#58c7ff") : rgb("#0278df"), rgb("#ffffff")], accentPalette: [rgb("#ffffff")], startFrame: config.heroStart - 6, durationRange: [56, 86], scaleFrom: 24, scaleTo: variant === "finale" ? 230 : 196 }));
+  nextIndex += config.ringCount;
+  nextIndex = addBingoHeroLayer(layers, nextIndex, { start: config.heroStart, peak: config.heroPeak, end: config.heroEnd, color: rgb("#fff4b8"), accent: variant === "electric" ? rgb("#58c7ff") : rgb("#f7c901"), fontSize: variant === "finale" ? 320 : 260, strokeWidth: variant === "speed" ? 14 : 10 });
+
+  return makeAnimation(config.name, layers);
 };
 
 const buildGoldenBingoCascade = () => {
@@ -7647,6 +8013,31 @@ const roseBloomGroup = (name, radius) =>
     ]),
   ]);
 
+const goldenRoseBloomGroup = (name, radius) =>
+  group(name, [
+    group("Golden Rose Glow", [
+      ellipseShape("Golden Rose Glow Path", radius * 2.7, radius * 2.45),
+      fillNode("Golden Rose Glow Fill", flowerPalette.gold, 14),
+    ]),
+    ...Array.from({ length: 14 }, (_, index) => {
+      const progress = index / 13;
+      const angle = progress * 780;
+      const radians = (angle * Math.PI) / 180;
+      const distance = radius * (0.08 + (progress * 0.58));
+      const size = radius * (0.46 - (progress * 0.12));
+      return group(`Golden Rose Petal ${index + 1}`, [
+        petalGroup("Golden Rose Petal Shape", size * 0.82, size * 1.2, index % 2 === 0 ? flowerPalette.gold : flowerPalette.roseLight, flowerPalette.white),
+      ], {
+        position: [Math.cos(radians) * distance, Math.sin(radians) * distance * 0.72],
+        rotation: angle + 36,
+      });
+    }),
+    group("Golden Rose Core", [
+      ellipseShape("Golden Rose Core Path", radius * 0.42, radius * 0.34),
+      fillNode("Golden Rose Core Fill", flowerPalette.white, 64),
+    ]),
+  ]);
+
 const buildPetalDriftLayers = (startIndex, options) => {
   const {
     seed,
@@ -7788,6 +8179,47 @@ const buildFloralHeartLayers = (startIndex) => {
   return layers;
 };
 
+const buildRoseHeartLayers = (startIndex) => {
+  const layers = [];
+  const center = [WIDTH / 2, HEIGHT / 2 + 8];
+  for (let index = 0; index < 34; index += 1) {
+    const t = (index / 34) * Math.PI * 2;
+    const x = 16 * Math.sin(t) ** 3;
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    const target = [center[0] + (x * 30), center[1] + (y * 25)];
+    const angle = (index / 34) * Math.PI * 2;
+    layers.push(buildLayer({
+      index: startIndex + layers.length,
+      name: `Rose Heart Petal ${index + 1}`,
+      shapes: [petalGroup("Heart Rose Petal", 38 + ((index % 3) * 6), 76 + ((index % 4) * 7), index % 2 === 0 ? flowerPalette.red : flowerPalette.rose, flowerPalette.roseLight)],
+      positionFrames: [
+        { t: 0, s: [center[0] + (Math.cos(angle) * 840), center[1] + (Math.sin(angle) * 480), 0] },
+        { t: 66, s: [target[0], target[1], 0] },
+        { t: 124, s: [target[0], target[1], 0] },
+        { t: 170, s: [target[0] + (Math.cos(angle) * 300), target[1] + (Math.sin(angle) * 190), 0] },
+      ],
+      scaleFrames: [
+        { t: 0, s: [24, 24, 100] },
+        { t: 66, s: [102, 102, 100] },
+        { t: 100, s: [116, 116, 100] },
+        { t: 170, s: [64, 64, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: 14 + (index % 8), s: [90] },
+        { t: 126, s: [96] },
+        { t: 170, s: [0] },
+      ],
+      rotationFrames: [
+        { t: 0, s: [index * 18] },
+        { t: 124, s: [index * 18 + 42] },
+        { t: 170, s: [index * 18 + 118] },
+      ],
+    }));
+  }
+  return layers;
+};
+
 const buildPetalStormBloom = () => {
   let nextIndex = 1;
   const layers = [];
@@ -7881,6 +8313,98 @@ const buildBloomBurstFinale = () => {
   nextIndex += petals.length;
   layers.push(...buildCountdownSparkLayers(nextIndex, 9052, 62, 30, [WIDTH / 2, HEIGHT / 2]));
   return makeAnimation("Bloom Burst Finale", layers);
+};
+
+const buildGiantRoseReveal = () => {
+  let nextIndex = 1;
+  const center = [WIDTH / 2, HEIGHT * 0.52];
+  const layers = [buildNeonGlowLayer(nextIndex, "Giant Rose Romantic Glow", flowerPalette.red, center, [1080, 520])];
+  nextIndex += 1;
+  const petals = buildPetalDriftLayers(nextIndex, { seed: 9061, count: 58, colorSet: [flowerPalette.red, flowerPalette.rose, flowerPalette.roseLight], swirl: true, sizeRange: [22, 56] });
+  layers.push(...petals);
+  nextIndex += petals.length;
+  layers.push(buildHeroFlowerLayer(nextIndex, "Giant Rose Reveal Hero", [roseBloomGroup("Giant Hero Rose", 258)], 52, 92, 170, center));
+  nextIndex += 1;
+  layers.push(...buildRingPulseLayers(nextIndex, { seed: 9062, count: 4, center, radiusRange: [170, 500], widthRange: [6, 12], palette: [flowerPalette.red, flowerPalette.roseLight, flowerPalette.white], accentPalette: [flowerPalette.white], startFrame: 54, durationRange: [84, 116], scaleFrom: 24, scaleTo: 184 }));
+  nextIndex += 4;
+  layers.push(...buildCountdownSparkLayers(nextIndex, 9063, 58, 34, center));
+  return makeAnimation("Giant Rose Reveal", layers);
+};
+
+const buildRosePetalStorm = () => {
+  let nextIndex = 1;
+  const center = [WIDTH / 2, HEIGHT * 0.52];
+  const layers = [buildNeonGlowLayer(nextIndex, "Rose Petal Storm Glow", flowerPalette.rose, center, [1160, 540])];
+  nextIndex += 1;
+  const petals = buildPetalDriftLayers(nextIndex, { seed: 9071, count: 84, colorSet: [flowerPalette.red, flowerPalette.rose, flowerPalette.sakura, flowerPalette.roseLight], swirl: true, sizeRange: [18, 50] });
+  layers.push(...petals);
+  nextIndex += petals.length;
+  layers.push(buildHeroFlowerLayer(nextIndex, "Rose Petal Storm Silhouette", [roseBloomGroup("Storm Rose Silhouette", 214)], 68, 102, 166, center));
+  nextIndex += 1;
+  layers.push(...buildCountdownSparkLayers(nextIndex, 9072, 66, 28, center));
+  return makeAnimation("Petal Storm", layers);
+};
+
+const buildRoseHeartBloom = () => {
+  let nextIndex = 1;
+  const center = [WIDTH / 2, HEIGHT / 2 + 8];
+  const layers = [buildNeonGlowLayer(nextIndex, "Rose Heart Bloom Glow", flowerPalette.rose, center, [1080, 540])];
+  nextIndex += 1;
+  const heart = buildRoseHeartLayers(nextIndex);
+  layers.push(...heart);
+  nextIndex += heart.length;
+  layers.push(buildHeroFlowerLayer(nextIndex, "Rose Heart Center Bloom", [roseBloomGroup("Heart Center Rose", 142)], 70, 100, 164, center));
+  nextIndex += 1;
+  layers.push(...buildRingPulseLayers(nextIndex, { seed: 9082, count: 3, center, radiusRange: [210, 440], widthRange: [7, 13], palette: [flowerPalette.roseLight, flowerPalette.red], accentPalette: [flowerPalette.white], startFrame: 64, durationRange: [82, 112], scaleFrom: 30, scaleTo: 176 }));
+  return makeAnimation("Rose Heart Bloom", layers);
+};
+
+const buildGoldenRoseJackpot = () => {
+  let nextIndex = 1;
+  const center = [WIDTH / 2, HEIGHT * 0.53];
+  const layers = [buildNeonGlowLayer(nextIndex, "Golden Rose Jackpot Glow", flowerPalette.gold, center, [1040, 500])];
+  nextIndex += 1;
+  layers.push(buildLayer({
+    index: nextIndex,
+    name: "Golden Rose Stem",
+    shapes: [lineStrokeGroup("Golden Rose Stem Stroke", [[0, 210], [0, 70], [-30, 10], [0, -80]], flowerPalette.gold, 18, flowerPalette.white, 5, 18, 82)],
+    positionFrames: [{ t: 0, s: [center[0], center[1], 0] }],
+    scaleFrames: [{ t: 26, s: [50, 50, 100] }, { t: 72, s: [100, 100, 100] }, { t: 166, s: [96, 96, 100] }],
+    opacityFrames: [{ t: 0, s: [0] }, { t: 30, s: [82] }, { t: 144, s: [82] }, { t: 170, s: [0] }],
+    inFrame: 24,
+    outFrame: 171,
+  }));
+  nextIndex += 1;
+  const dust = buildRadialBurstLayers(nextIndex, { seed: 9091, count: 52, center, minRadius: 120, maxRadius: 820, startFrame: 22, duration: 144, palette: [flowerPalette.gold, flowerPalette.roseLight, flowerPalette.white], sizeRange: [8, 20], shapeFactory: ({ size, color }) => [sparkleGroup("Golden Rose Spark", size, color, flowerPalette.white)], scaleFrom: 16, scaleTo: 116, travelYScale: 0.54, rotationRange: [-160, 160] });
+  layers.push(...dust);
+  nextIndex += dust.length;
+  layers.push(buildHeroFlowerLayer(nextIndex, "Golden Rose Jackpot Hero", [goldenRoseBloomGroup("Golden Hero Rose", 238)], 56, 92, 168, [center[0], center[1] - 70]));
+  nextIndex += 1;
+  layers.push(...buildRingPulseLayers(nextIndex, { seed: 9092, count: 5, center: [center[0], center[1] - 70], radiusRange: [160, 510], widthRange: [6, 13], palette: [flowerPalette.gold, flowerPalette.white, flowerPalette.roseLight], accentPalette: [flowerPalette.white], startFrame: 56, durationRange: [80, 116], scaleFrom: 24, scaleTo: 188 }));
+  return makeAnimation("Golden Rose Jackpot", layers);
+};
+
+const buildRoseGrandFinale = () => {
+  let nextIndex = 1;
+  const center = [WIDTH / 2, HEIGHT * 0.52];
+  const layers = [buildNeonGlowLayer(nextIndex, "Rose Grand Finale Glow", flowerPalette.rose, center, [1220, 570])];
+  nextIndex += 1;
+  const roses = [
+    [410, 320, 118, 28],
+    [960, 430, 228, 44],
+    [1500, 330, 126, 38],
+    [660, 690, 112, 54],
+    [1280, 670, 108, 60],
+  ];
+  for (const [x, y, radius, start] of roses) {
+    layers.push(buildHeroFlowerLayer(nextIndex, `Rose Finale Bloom ${nextIndex}`, [roseBloomGroup("Finale Rose", radius)], start, 94, 168, [x, y]));
+    nextIndex += 1;
+  }
+  const petals = buildPetalDriftLayers(nextIndex, { seed: 9101, count: 72, colorSet: [flowerPalette.red, flowerPalette.rose, flowerPalette.sakura, flowerPalette.gold, flowerPalette.roseLight], swirl: false, sizeRange: [18, 52] });
+  layers.push(...petals);
+  nextIndex += petals.length;
+  layers.push(...buildCountdownSparkLayers(nextIndex, 9102, 54, 48, center));
+  return makeAnimation("Rose Grand Finale", layers);
 };
 
 const leprechaunPalette = {
@@ -10204,6 +10728,11 @@ const effects = [
   { output: "trh-full-rose-swirl-reveal.json", build: buildRoseSwirlReveal, decorate: false },
   { output: "trh-full-floral-heart-bloom.json", build: buildFloralHeartBloom, decorate: false },
   { output: "trh-full-bloom-burst-finale.json", build: buildBloomBurstFinale, decorate: false },
+  { output: "trh-full-giant-rose-reveal.json", build: buildGiantRoseReveal, decorate: false },
+  { output: "trh-full-rose-petal-storm.json", build: buildRosePetalStorm, decorate: false },
+  { output: "trh-full-rose-heart-bloom.json", build: buildRoseHeartBloom, decorate: false },
+  { output: "trh-full-golden-rose-jackpot.json", build: buildGoldenRoseJackpot, decorate: false },
+  { output: "trh-full-rose-grand-finale.json", build: buildRoseGrandFinale, decorate: false },
   { output: "trh-full-classic-countdown-bingo.json", build: buildClassicCountdownBingo, decorate: false },
   { output: "trh-full-bingo-letter-build.json", build: buildBingoLetterBuild, decorate: false },
   { output: "trh-full-gold-jackpot-countdown.json", build: buildGoldJackpotCountdown, decorate: false },
@@ -10269,6 +10798,11 @@ const effects = [
   { output: "trh-full-jackpot-fever.json", build: buildJackpotFever, decorate: false },
   { output: "trh-full-bingo-shock.json", build: buildBingoShock, decorate: false },
   { output: "trh-full-bingo-ball-formation-wink.json", build: buildBingoBallFormationWink, decorate: false },
+  { output: "trh-full-imported-bingo-animation.json", build: () => buildImportedBingoAnimation("classic"), decorate: false },
+  { output: "trh-full-bingo-bounce-high-speed-collision.json", build: () => buildImportedBingoAnimation("speed"), decorate: false },
+  { output: "trh-full-bingo-bounce-confetti-celebration.json", build: () => buildImportedBingoAnimation("confetti"), decorate: false },
+  { output: "trh-full-bingo-bounce-electric-jackpot.json", build: () => buildImportedBingoAnimation("electric"), decorate: false },
+  { output: "trh-full-bingo-bounce-mega-finale.json", build: () => buildImportedBingoAnimation("finale"), decorate: false },
   { output: "trh-full-omg-big-win.json", build: buildOmgBigWin, decorate: false },
   { output: "trh-full-hot-streak.json", build: buildHotStreak, decorate: false },
   { output: "trh-full-lucky-diamond-hit.json", build: buildLuckyDiamondHit, decorate: false },
@@ -10289,6 +10823,14 @@ export const regenerateFullscreenLotties = async (rootDir) => {
   await fs.mkdir(targetDir, { recursive: true });
 
   for (const effect of effects) {
+    if (effect.source) {
+      const sourcePath = path.join(rootDir, effect.source);
+      const raw = await fs.readFile(sourcePath, "utf8");
+      const animation = normalizeAnimatedKeyframeHandles(ensureAnimatedOpacitySignal(JSON.parse(raw)));
+      await fs.writeFile(path.join(targetDir, effect.output), `${JSON.stringify(animation)}\n`, "utf8");
+      continue;
+    }
+
     const animation = effect.decorate === false
       ? effect.build()
       : decoratePremiumFullscreenAnimation(effect.build(), effect.output);

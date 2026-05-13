@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "name": "Bingo Animation",
+    "duration": 9,
+    "fps": 60,
+    "totalFrames": 540,
+    "width": 1920,
+    "height": 1080,
+    "format": "1920x1080"
+  },
+  "balls": [
+    {
+      "letter": "B",
+      "color": "#0278df",
+      "radius": 84,
+      "fontSize": 77,
+      "targetPosition": {
+        "x": 528,
+        "y": 540
+      },
+      "animation": {
+        "bouncingPhase": {
+          "startFrame": 0,
+          "endFrame": 420,
+          "gravity": 0.81,
+          "bounceRestitution": 0.7
+        },
+        "formingPhase": {
+          "startFrame": 420,
+          "endFrame": 540,
+          "easing": "easeOutCubic"
+        }
+      }
+    },
+    {
+      "letter": "I",
+      "color": "#f70900",
+      "radius": 84,
+      "fontSize": 77,
+      "targetPosition": {
+        "x": 744,
+        "y": 540
+      },
+      "animation": {
+        "bouncingPhase": {
+          "startFrame": 0,
+          "endFrame": 420,
+          "gravity": 0.81,
+          "bounceRestitution": 0.7
+        },
+        "formingPhase": {
+          "startFrame": 420,
+          "endFrame": 540,
+          "easing": "easeOutCubic"
+        }
+      }
+    },
+    {
+      "letter": "N",
+      "color": "#9610b8",
+      "radius": 84,
+      "fontSize": 77,
+      "targetPosition": {
+        "x": 960,
+        "y": 540
+      },
+      "animation": {
+        "bouncingPhase": {
+          "startFrame": 0,
+          "endFrame": 420,
+          "gravity": 0.81,
+          "bounceRestitution": 0.7
+        },
+        "formingPhase": {
+          "startFrame": 420,
+          "endFrame": 540,
+          "easing": "easeOutCubic"
+        }
+      }
+    },
+    {
+      "letter": "G",
+      "color": "#36af0a",
+      "radius": 84,
+      "fontSize": 77,
+      "targetPosition": {
+        "x": 1176,
+        "y": 540
+      },
+      "animation": {
+        "bouncingPhase": {
+          "startFrame": 0,
+          "endFrame": 420,
+          "gravity": 0.81,
+          "bounceRestitution": 0.7
+        },
+        "formingPhase": {
+          "startFrame": 420,
+          "endFrame": 540,
+          "easing": "easeOutCubic"
+        }
+      }
+    },
+    {
+      "letter": "O",
+      "color": "#f7c901",
+      "radius": 84,
+      "fontSize": 77,
+      "targetPosition": {
+        "x": 1392,
+        "y": 540
+      },
+      "animation": {
+        "bouncingPhase": {
+          "startFrame": 0,
+          "endFrame": 420,
+          "gravity": 0.81,
+          "bounceRestitution": 0.7
+        },
+        "formingPhase": {
+          "startFrame": 420,
+          "endFrame": 540,
+          "easing": "easeOutCubic"
+        }
+      }
+    }
+  ],
+  "effects": {
+    "fireworks": {
+      "colors": [
+        "#FF6B6B",
+        "#FFE66D",
+        "#4ECDC4",
+        "#FF9F43",
+        "#6C5CE7",
+        "#F38181",
+        "#00D2D3",
+        "#FECA57"
+      ],
+      "spawnInterval": 20,
+      "particleCount": 30,
+      "sparkCount": 15
+    },
+    "confetti": {
+      "colors": [
+        "#0278df",
+        "#f70900",
+        "#9610b8",
+        "#36af0a",
+        "#f7c901"
+      ],
+      "spawnInterval": 5,
+      "particleCount": 5
+    }
+  },
+  "exportDate": "2026-05-13T02:36:46.322Z"
+}
