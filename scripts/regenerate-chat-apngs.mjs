@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const WIDTH = 768;
 const HEIGHT = 1024;
-const FRAME_COUNT = 64;
-const FRAME_DELAY_MS = 125;
-const FRAME_START_OFFSET = 0.16;
+const FRAME_COUNT = 72;
+const FRAME_DELAY_MS = 58;
+const FRAME_START_OFFSET = 0.02;
 const TAU = Math.PI * 2;
 
 const crcTable = (() => {
@@ -1033,6 +1033,12 @@ const renderPremiumChatEnhancement = (time, seed) => {
 const renderEnhancedChatFrame = (effect, time, seed, enhancementOpacity = effect.enhanceOpacity ?? 0.14) => {
   const timeline = createWinkTimeline(time);
   const frame = effect.render(timeline.renderTime, seed, timeline);
+  if (timeline.progress < 0.12) {
+    const starterAlpha = timeline.intro * (1 - clamp(timeline.progress / 0.12)) * 0.9;
+    drawSpark(frame, WIDTH * 0.5, HEIGHT * 0.48, 5.2, COLOR_PINK, starterAlpha);
+    drawSpark(frame, WIDTH * 0.46, HEIGHT * 0.5, 3.6, COLOR_WHITE, starterAlpha * 0.6);
+    drawSpark(frame, WIDTH * 0.54, HEIGHT * 0.5, 3.6, COLOR_GOLD_SOFT, starterAlpha * 0.5);
+  }
   if (enhancementOpacity > 0) {
     compositeBuffer(frame, renderPremiumChatEnhancement(timeline.renderTime, seed), enhancementOpacity * timeline.enhancementAlpha);
   }
@@ -5886,6 +5892,194 @@ const renderChatThumbStormHero = (time, seed, timeline) => renderPremiumCentered
 const renderChatFireworkHero = (time, seed, timeline) => renderPremiumCenteredChatWink(time, seed, timeline, "firework");
 const renderChatNeonHero = (time, seed, timeline) => renderPremiumCenteredChatWink(time, seed, timeline, "neon-grid");
 
+const renderPremiumSocialThemeChatWink = (time, _seed, timeline, variant) => {
+  const rgba = Buffer.alloc(WIDTH * HEIGHT * 4);
+  const beat = getMessengerBeat(time, timeline);
+  const centerX = WIDTH * 0.5;
+  const centerY = HEIGHT * 0.47;
+  const build = easeOutBack(clamp((beat.progress - 0.03) / 0.4));
+  const heroAlpha = beat.heroAlpha * (1 - (beat.dissolve * 0.92));
+  const pulse = 1 + (beat.pulse * 0.045);
+  const exitLift = beat.dissolve * 38;
+  const group = variant.split("-")[0];
+  const glowColor = group === "laugh" ? COLOR_GOLD
+    : group === "christmas" || group === "snowman" ? COLOR_CYAN
+      : group === "bomb" ? COLOR_HOT
+        : group === "friendship" || group === "rose" ? COLOR_PINK
+          : COLOR_GOLD_SOFT;
+
+  drawCircle(rgba, centerX, centerY + 18, 160 * build * pulse, glowColor, heroAlpha * 0.018);
+  drawRing(rgba, centerX, centerY + 8, 116 + (beat.pulse * 10) + (beat.dissolve * 46), 3, glowColor, heroAlpha * 0.05);
+  if (!["bingo", "kiss", "lucky"].includes(group)) {
+    drawCenteredHeroParticles(
+      rgba,
+      beat,
+      group === "rose" || group === "friendship" ? "hearts"
+        : group === "christmas" || group === "snowman" ? "spark"
+          : group === "premium" || group === "win" ? "stars"
+            : group === "bomb" ? "confetti"
+              : "neon",
+      glowColor,
+      group === "laugh" ? COLOR_PINK : COLOR_GOLD,
+    );
+  }
+
+  const y = centerY - exitLift;
+  if (group === "bingo") {
+    const ballLetters = ["B", "I", "N", "G", "O"];
+    const ballColors = ["#0278df", "#f70900", "#9610b8", "#36af0a", "#f7c901"];
+    for (let ball = 0; ball < 5; ball += 1) {
+      drawBingoBall(rgba, centerX - 144 + (ball * 72), y - 86, 30 * build, hexToRgb(ballColors[ball]), ballLetters[ball], heroAlpha * 0.92);
+    }
+    drawTextBlock(rgba, variant.includes("letters") ? "B I N G O" : "BINGO!", centerX, y + 22, variant.includes("letters") ? 7.6 : 9.6, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "kiss") {
+    drawKissMark(rgba, centerX, y, 142 * build * pulse, heroAlpha);
+  } else if (group === "star") {
+    drawCenteredHeroParticles(rgba, beat, "stars", COLOR_GOLD, COLOR_GOLD_SOFT);
+    drawGoldenStickerStar(rgba, centerX, y, 122 * build * pulse, heroAlpha, beat.progress * 0.2);
+  } else if (group === "lucky") {
+    if (variant.includes("pot")) {
+      drawRotatedRect(rgba, centerX, y + 54, 166 * build, 76 * build, 0, hexToRgb("#16251a"), heroAlpha * 0.95, 2);
+      drawCapsule(rgba, centerX - 82, y + 12, centerX + 82, y + 12, 28 * build, COLOR_GOLD, heroAlpha);
+    } else {
+      drawLuckyClover(rgba, centerX, y, 150 * build * pulse, COLOR_GREEN, heroAlpha);
+    }
+  } else if (group === "firework") {
+    drawCenteredHeroParticles(rgba, beat, "spark", COLOR_CYAN, COLOR_HOT);
+    drawBurstRays(rgba, centerX, y, 178 * build, 18, COLOR_GOLD, COLOR_CYAN, heroAlpha * 0.44, beat.progress * TAU, 1.3);
+    drawSpark(rgba, centerX, y, 34 * build, COLOR_WHITE, heroAlpha * 0.66);
+  } else if (group === "neon") {
+    drawCenteredHeroParticles(rgba, beat, "neon", COLOR_CYAN, COLOR_HOT);
+    drawTextBlock(rgba, variant.includes("pulse") ? "PULSE" : "NEON", centerX, y - 18, 7.8, COLOR_CYAN, heroAlpha * build, COLOR_HOT);
+    drawTextBlock(rgba, variant.includes("grid") ? "GRID" : "GLOW", centerX, y + 76, 7.4, COLOR_PURPLE, heroAlpha * build, COLOR_CYAN);
+  } else if (group === "celebration") {
+    drawCenteredHeroParticles(rgba, beat, "confetti", COLOR_HOT, COLOR_CYAN);
+    drawTextBlock(rgba, variant.includes("ribbon") ? "RIBBON" : "PARTY", centerX, y + 28, 7.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "rose") {
+    const roseColor = variant.includes("gold") ? COLOR_GOLD : COLOR_PINK;
+    for (let petal = 0; petal < 9; petal += 1) {
+      const angle = (petal / 9) * TAU + (beat.progress * 0.8);
+      drawGlossyHeart(
+        rgba,
+        centerX + (Math.cos(angle) * 42 * build),
+        y + (Math.sin(angle) * 30 * build),
+        (48 + ((petal % 3) * 6)) * build * pulse,
+        petal % 3 === 0 ? COLOR_RED : roseColor,
+        heroAlpha * 0.72,
+      );
+    }
+    drawGlossyHeart(rgba, centerX, y + 8, 96 * build * pulse, roseColor, heroAlpha);
+  } else if (group === "applause") {
+    drawThumbsUp(rgba, centerX - 62, y + 18, 118 * build * pulse, { hand: hexToRgb("#fff4dd"), cuff: COLOR_GOLD, glow: COLOR_PINK, outline: COLOR_WHITE }, heroAlpha, 0.18, true);
+    drawThumbsUp(rgba, centerX + 62, y + 18, 118 * build * pulse, { hand: hexToRgb("#fff4dd"), cuff: COLOR_CYAN, glow: COLOR_GOLD, outline: COLOR_WHITE }, heroAlpha, -0.18);
+    drawTextBlock(rgba, variant.includes("bravo") ? "BRAVO" : "CLAP", centerX, y + 140, 6.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "laugh") {
+    const label = variant.includes("haha") ? "HAHAHA" : variant.includes("rofl") ? "ROFL!" : variant.includes("finale") ? "LOL!" : "LOL";
+    drawCircle(rgba, centerX, y, 82 * build * pulse, COLOR_GOLD, heroAlpha * 0.72);
+    drawCircle(rgba, centerX - 28, y - 18, 8 * build, hexToRgb("#34210a"), heroAlpha);
+    drawCircle(rgba, centerX + 28, y - 18, 8 * build, hexToRgb("#34210a"), heroAlpha);
+    drawCapsule(rgba, centerX - 34, y + 28, centerX + 34, y + 28, 8 * build, hexToRgb("#34210a"), heroAlpha);
+    drawTextBlock(rgba, label, centerX, y + 132, label.length > 5 ? 5.4 : 7.6, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+  } else if (group === "win") {
+    drawCrown(rgba, centerX, y - 88, 156 * build * pulse, COLOR_GOLD, heroAlpha);
+    drawTextBlock(rgba, variant.includes("big") || variant.includes("mega") ? "BIG WIN" : "WIN", centerX, y + 38, variant.includes("big") || variant.includes("mega") ? 6.8 : 10.4, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "christmas") {
+    drawGoldenStickerStar(rgba, centerX, y - 122, 34 * build, heroAlpha, beat.progress);
+    drawRotatedRect(rgba, centerX, y - 60, 158 * build, 74 * build, 0, COLOR_GREEN, heroAlpha, 2.2);
+    drawRotatedRect(rgba, centerX, y - 10, 198 * build, 82 * build, 0, COLOR_GREEN, heroAlpha * 0.9, 2.2);
+    drawRotatedRect(rgba, centerX, y + 56, 236 * build, 88 * build, 0, COLOR_GREEN, heroAlpha * 0.82, 2.2);
+    drawRotatedRect(rgba, centerX, y + 122, 42 * build, 64 * build, 0, hexToRgb("#7a4521"), heroAlpha, 1.4);
+    drawTextBlock(rgba, variant.includes("finale") ? "MERRY" : "XMAS", centerX, y + 184, 6.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "snowman") {
+    drawCircle(rgba, centerX, y + 82, 76 * build, COLOR_WHITE, heroAlpha);
+    drawCircle(rgba, centerX, y + 8, 58 * build, COLOR_WHITE, heroAlpha);
+    drawCircle(rgba, centerX, y - 52, 44 * build, COLOR_WHITE, heroAlpha);
+    drawRotatedRect(rgba, centerX, y - 104, 86 * build, 20 * build, 0, hexToRgb("#182331"), heroAlpha, 1.2);
+    drawRotatedRect(rgba, centerX, y - 132, 54 * build, 46 * build, 0, hexToRgb("#182331"), heroAlpha, 1.2);
+    drawCapsule(rgba, centerX - 10, y - 42, centerX + 34, y - 36, 5 * build, COLOR_HOT, heroAlpha);
+    drawTextBlock(rgba, "SNOW", centerX, y + 184, 6.8, COLOR_CYAN, heroAlpha * build, COLOR_WHITE);
+  } else if (group === "bomb") {
+    drawCircle(rgba, centerX, y, 78 * build * pulse, hexToRgb("#171a24"), heroAlpha);
+    drawCircle(rgba, centerX - 18, y - 20, 30 * build, COLOR_WHITE, heroAlpha * 0.1);
+    drawCapsule(rgba, centerX + 40, y - 58, centerX + 92, y - 104, 6 * build, COLOR_GOLD, heroAlpha);
+    drawBurstRays(rgba, centerX, y, 170 * build, 16, COLOR_HOT, COLOR_GOLD, heroAlpha * 0.45, beat.progress * TAU, 1.2);
+    drawTextBlock(rgba, "BOOM", centerX, y + 150, 7.2, COLOR_HOT, heroAlpha * build, COLOR_GOLD_SOFT);
+  } else if (group === "friendship") {
+    drawGlossyHeart(rgba, centerX, y - 22, 98 * build * pulse, COLOR_PINK, heroAlpha);
+    drawThumbsUp(rgba, centerX - 92, y + 48, 96 * build, { hand: hexToRgb("#fff4dd"), cuff: COLOR_CYAN, glow: COLOR_PINK, outline: COLOR_WHITE }, heroAlpha * 0.86, 0.16, true);
+    drawThumbsUp(rgba, centerX + 92, y + 48, 96 * build, { hand: hexToRgb("#fff4dd"), cuff: COLOR_GOLD, glow: COLOR_PINK, outline: COLOR_WHITE }, heroAlpha * 0.86, -0.16);
+    drawTextBlock(rgba, "FRIENDS", centerX, y + 160, 5.8, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+  } else if (group === "premium") {
+    if (variant.includes("crown") || variant.includes("vip")) {
+      drawCrown(rgba, centerX, y - 22, 184 * build * pulse, COLOR_GOLD, heroAlpha);
+      drawTextBlock(rgba, "VIP", centerX, y + 118, 8.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+    } else {
+      drawDiamondGem(rgba, centerX, y, 164 * build * pulse, variant.includes("gold") ? COLOR_GOLD : COLOR_CYAN, heroAlpha, beat.progress * 0.4);
+      drawTextBlock(rgba, variant.includes("finale") ? "LUXURY" : "DIAMOND", centerX, y + 142, variant.includes("finale") ? 5.8 : 5.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
+    }
+  }
+
+  return rgba;
+};
+
+const renderChatRoseBloom = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "rose-bloom");
+const renderChatRosePetalStorm = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "rose-petal");
+const renderChatRoseHeart = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "rose-heart");
+const renderChatGoldenRose = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "rose-gold");
+const renderChatRoseFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "rose-finale");
+const renderChatApplauseClap = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "applause-clap");
+const renderChatStandingOvation = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "applause-ovation");
+const renderChatGoldenApplause = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "applause-golden");
+const renderChatBravoBurst = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "applause-bravo");
+const renderChatApplauseFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "applause-finale");
+const renderChatLaughLol = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "laugh-lol");
+const renderChatLaughEmojiStorm = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "laugh-emoji");
+const renderChatLaughHaha = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "laugh-haha");
+const renderChatLaughRofl = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "laugh-rofl");
+const renderChatLaughFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "laugh-finale");
+const renderChatWinReveal = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "win-reveal");
+const renderChatBigWinBurst = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "win-big");
+const renderChatRoyalCrownWin = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "win-crown");
+const renderChatJackpotVictory = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "win-jackpot");
+const renderChatMegaWinFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "win-mega");
+const renderChatChristmasTree = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "christmas-tree");
+const renderChatSnowfallMagic = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "christmas-snow");
+const renderChatSantaGift = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "christmas-gift");
+const renderChatJingleBells = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "christmas-bells");
+const renderChatChristmasFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "christmas-finale");
+const renderChatSnowmanBuild = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "snowman-build");
+const renderChatSnowstormReveal = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "snowman-storm");
+const renderChatTopHatSnowman = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "snowman-hat");
+const renderChatSnowmanGift = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "snowman-gift");
+const renderChatSnowmanFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "snowman-finale");
+const renderChatBombBurst = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bomb-burst");
+const renderChatChainExplosion = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bomb-chain");
+const renderChatElectricBomb = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bomb-electric");
+const renderChatRocketImpact = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bomb-rocket");
+const renderChatMegaExplosion = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bomb-mega");
+const renderChatHandshake = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "friendship-handshake");
+const renderChatBestFriends = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "friendship-best");
+const renderChatFriendshipHeart = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "friendship-heart");
+const renderChatFriendshipStars = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "friendship-stars");
+const renderChatFriendshipFinale = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "friendship-finale");
+const renderChatDiamondHit = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "premium-diamond");
+const renderChatGoldRushPremium = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "premium-gold");
+const renderChatCrystalBurstPremium = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "premium-crystal");
+const renderChatVipGlowPremium = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "premium-vip");
+const renderChatLuxuryJackpotPremium = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "premium-finale");
+const renderChatSimpleCelebration = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "celebration-party");
+const renderChatSimpleRibbon = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "celebration-ribbon");
+const renderChatSimpleBingo = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bingo-reveal");
+const renderChatSimpleBingoLetters = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "bingo-letters");
+const renderChatSimpleKiss = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "kiss-simple");
+const renderChatSimpleLucky = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "lucky-shamrock");
+const renderChatSimpleLuckyPot = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "lucky-pot");
+const renderChatSimpleLuckyCoin = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "lucky-coin");
+const renderChatSimpleStar = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "star-simple");
+const renderChatSimpleFirework = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "firework-simple");
+const renderChatSimpleNeon = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "neon-grid");
+const renderChatSimpleNeonPulse = (time, seed, timeline) => renderPremiumSocialThemeChatWink(time, seed, timeline, "neon-pulse");
+
 const effects = [
   {
     output: "trh-chat-heavy-confetti-rain.apng",
@@ -6590,32 +6784,132 @@ const effects = [
   },
 ];
 
-const requestedChatPackOutputs = new Set([
-  "trh-chat-heavy-confetti-rain.apng",
-  "trh-chat-party-horn-explosion.apng",
-  "trh-chat-giant-bingo-reveal.apng",
-  "trh-chat-classic-bingo-formation.apng",
-  "trh-chat-bingo-ball-chaos.apng",
-  "trh-chat-gold-star-rain.apng",
-  "trh-chat-star-explosion-burst.apng",
-  "trh-chat-big-heart-formation.apng",
-  "trh-chat-heart-rain-formation.apng",
-  "trh-chat-giant-kiss-mark-burst.apng",
-  "trh-chat-kiss-storm.apng",
-  "trh-chat-shamrock-storm.apng",
-  "trh-chat-pot-of-gold-burst.apng",
-  "trh-chat-happy-birthday-reveal.apng",
-  "trh-chat-balloon-celebration.apng",
-  "trh-chat-birthday-cake-formation.apng",
-  "trh-chat-thumbs-up-pop.apng",
-  "trh-chat-double-like-rush.apng",
-  "trh-chat-firework-grand-finale.apng",
-  "trh-chat-neon-jackpot-grid.apng",
-]);
+const masterChatPackEffects = [
+  ["trh-chat-heavy-confetti-rain.apng", renderChatConfettiRainHero],
+  ["trh-chat-party-horn-explosion.apng", renderChatPartyHornHero],
+  ["trh-chat-celebration-burst.apng", renderChatSimpleCelebration],
+  ["trh-chat-ribbon-celebration.apng", renderChatSimpleRibbon],
+  ["trh-chat-firework-celebration.apng", renderChatSimpleFirework],
+  ["trh-chat-bingo-ball-bounce.apng", renderChatSimpleBingo],
+  ["trh-chat-bingo-formation.apng", renderChatSimpleBingoLetters],
+  ["trh-chat-bingo-explosion.apng", renderChatSimpleBingo],
+  ["trh-chat-jackpot-bingo-reveal.apng", renderChatSimpleBingo],
+  ["trh-chat-mega-bingo-burst.apng", renderChatSimpleBingo],
+  ["trh-chat-big-heart-formation.apng", renderMessengerBigHeartFormation],
+  ["trh-chat-heart-rain-formation.apng", renderMessengerHeartRainFormation],
+  ["trh-chat-double-heart-pop.apng", renderMessengerDoubleHeartPop],
+  ["trh-chat-cupid-spark-drift.apng", renderMessengerCupidSparkDrift],
+  ["trh-chat-hearts-love-explosion.apng", renderMessengerHeartsLoveExplosion],
+  ["trh-chat-giant-kiss-mark-burst.apng", renderMessengerKissMarkBurst],
+  ["trh-chat-kiss-storm.apng", renderMessengerKissStorm],
+  ["trh-chat-lipstick-explosion.apng", renderChatSimpleKiss],
+  ["trh-chat-air-kiss-burst.apng", renderMessengerCupidSparkDrift],
+  ["trh-chat-kiss-sparkle-finale.apng", renderChatSimpleKiss],
+  ["trh-chat-happy-birthday-reveal.apng", renderMessengerHappyBirthdayReveal],
+  ["trh-chat-balloon-celebration.apng", renderMessengerBirthdayBalloonCelebration],
+  ["trh-chat-birthday-cake-pop.apng", renderMessengerBirthdayCakePop],
+  ["trh-chat-candle-light-wish.apng", renderMessengerBirthdayCandleLightWish],
+  ["trh-chat-birthday-finale.apng", renderChatBirthdayTextHero],
+  ["trh-chat-thumbs-up-pop.apng", renderMessengerThumbsUpPop],
+  ["trh-chat-like-storm.apng", renderMessengerDoubleLikeRush],
+  ["trh-chat-mega-approval.apng", renderChatThumbHero],
+  ["trh-chat-emoji-bounce.apng", renderChatThumbStormHero],
+  ["trh-chat-social-like-finale.apng", renderMessengerDoubleLikeRush],
+  ["trh-chat-shamrock-rain.apng", renderChatSimpleLucky],
+  ["trh-chat-pot-of-gold-burst.apng", renderChatSimpleLuckyPot],
+  ["trh-chat-lucky-coin-explosion.apng", renderChatSimpleLuckyCoin],
+  ["trh-chat-rainbow-luck-reveal.apng", renderChatSimpleLucky],
+  ["trh-chat-lucky-finale.apng", renderChatSimpleLucky],
+  ["trh-chat-gold-star-rain.apng", renderMessengerGoldStarRainWink],
+  ["trh-chat-galaxy-stars.apng", renderChatSimpleStar],
+  ["trh-chat-star-explosion-burst.apng", renderMessengerStarExplosionBurstWink],
+  ["trh-chat-twinkle-formation.apng", renderChatSimpleStar],
+  ["trh-chat-golden-star-finale.apng", renderChatSimpleStar],
+  ["trh-chat-firework-launch.apng", renderMessengerStarlightRocketPop],
+  ["trh-chat-firework-burst.apng", renderMessengerFireworkImpact],
+  ["trh-chat-jackpot-fireworks.apng", renderChatSimpleFirework],
+  ["trh-chat-neon-firework-sky.apng", renderChatSimpleFirework],
+  ["trh-chat-grand-finale-fireworks.apng", renderChatFireworkHero],
+  ["trh-chat-neon-grid.apng", renderChatSimpleNeon],
+  ["trh-chat-electric-pulse.apng", renderChatSimpleNeonPulse],
+  ["trh-chat-neon-tunnel.apng", renderChatSimpleNeon],
+  ["trh-chat-cyber-glow.apng", renderChatSimpleNeon],
+  ["trh-chat-neon-jackpot-finale.apng", renderChatSimpleNeon],
+  ["trh-chat-rose-bloom.apng", renderChatRoseBloom],
+  ["trh-chat-petal-storm.apng", renderChatRosePetalStorm],
+  ["trh-chat-rose-heart.apng", renderChatRoseHeart],
+  ["trh-chat-golden-rose.apng", renderChatGoldenRose],
+  ["trh-chat-rose-finale.apng", renderChatRoseFinale],
+  ["trh-chat-giant-clap.apng", renderChatApplauseClap],
+  ["trh-chat-standing-ovation.apng", renderChatStandingOvation],
+  ["trh-chat-golden-applause.apng", renderChatGoldenApplause],
+  ["trh-chat-bravo-burst.apng", renderChatBravoBurst],
+  ["trh-chat-applause-finale.apng", renderChatApplauseFinale],
+  ["trh-chat-giant-lol.apng", renderChatLaughLol],
+  ["trh-chat-emoji-storm.apng", renderChatLaughEmojiStorm],
+  ["trh-chat-hahaha-wave.apng", renderChatLaughHaha],
+  ["trh-chat-rofl-burst.apng", renderChatLaughRofl],
+  ["trh-chat-comedy-finale.apng", renderChatLaughFinale],
+  ["trh-chat-win-reveal.apng", renderChatWinReveal],
+  ["trh-chat-big-win-burst.apng", renderChatBigWinBurst],
+  ["trh-chat-royal-crown-win.apng", renderChatRoyalCrownWin],
+  ["trh-chat-jackpot-victory.apng", renderChatJackpotVictory],
+  ["trh-chat-mega-win-finale.apng", renderChatMegaWinFinale],
+  ["trh-chat-christmas-tree-reveal.apng", renderChatChristmasTree],
+  ["trh-chat-snowfall-magic.apng", renderChatSnowfallMagic],
+  ["trh-chat-santa-gift-burst.apng", renderChatSantaGift],
+  ["trh-chat-jingle-bells.apng", renderChatJingleBells],
+  ["trh-chat-christmas-finale.apng", renderChatChristmasFinale],
+  ["trh-chat-snowman-build.apng", renderChatSnowmanBuild],
+  ["trh-chat-snowstorm-reveal.apng", renderChatSnowstormReveal],
+  ["trh-chat-top-hat-pop.apng", renderChatTopHatSnowman],
+  ["trh-chat-snowman-gift.apng", renderChatSnowmanGift],
+  ["trh-chat-snowman-finale.apng", renderChatSnowmanFinale],
+  ["trh-chat-cartoon-bomb-burst.apng", renderChatBombBurst],
+  ["trh-chat-chain-explosion.apng", renderChatChainExplosion],
+  ["trh-chat-electric-bomb.apng", renderChatElectricBomb],
+  ["trh-chat-rocket-impact.apng", renderChatRocketImpact],
+  ["trh-chat-mega-explosion-finale.apng", renderChatMegaExplosion],
+  ["trh-chat-handshake-reveal.apng", renderChatHandshake],
+  ["trh-chat-best-friends-pop.apng", renderChatBestFriends],
+  ["trh-chat-friendship-heart.apng", renderChatFriendshipHeart],
+  ["trh-chat-friendship-stars.apng", renderChatFriendshipStars],
+  ["trh-chat-friendship-finale.apng", renderChatFriendshipFinale],
+  ["trh-chat-diamond-hit.apng", renderChatDiamondHit],
+  ["trh-chat-gold-rush.apng", renderChatGoldRushPremium],
+  ["trh-chat-crystal-burst.apng", renderChatCrystalBurstPremium],
+  ["trh-chat-vip-glow.apng", renderChatVipGlowPremium],
+  ["trh-chat-luxury-jackpot-finale.apng", renderChatLuxuryJackpotPremium],
+].map(([output, render]) => ({
+  output,
+  previewOutput: output.replace(".apng", ".png"),
+  previewFrames: [{ time: 0.34, opacity: 0.86 }, { time: 0.52, opacity: 1 }, { time: 0.74, opacity: 0.22 }],
+  render,
+  enhanceOpacity: 0,
+  disableTimelineAlpha: true,
+}));
+
+effects.push(...masterChatPackEffects);
+
+const requestedChatPackOutputs = new Set(masterChatPackEffects.map((effect) => effect.output));
 
 const requestedChatPackPreviews = new Set(
   [...requestedChatPackOutputs].map((output) => output.replace(".apng", ".png")),
 );
+
+const writeFileWithRetries = async (filePath, data, attempts = 8) => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await fs.writeFile(filePath, data);
+      return;
+    } catch (error) {
+      if (attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 + (attempt * 150)));
+    }
+  }
+};
 
 export const regenerateChatApngs = async (rootDir, options = {}) => {
   const winkDir = path.join(rootDir, "public", "winks", "chat");
@@ -6646,9 +6940,9 @@ export const regenerateChatApngs = async (rootDir, options = {}) => {
       return compressRgba(renderEnhancedChatFrame(effect, time, enhancementSeed));
     });
 
-    await fs.writeFile(path.join(winkDir, effect.output), buildApng(frames));
+    await writeFileWithRetries(path.join(winkDir, effect.output), buildApng(frames));
 
-    await fs.writeFile(path.join(previewDir, effect.previewOutput), buildPng(renderPreviewChatFrame(effect, enhancementSeed)));
+    await writeFileWithRetries(path.join(previewDir, effect.previewOutput), buildPng(renderPreviewChatFrame(effect, enhancementSeed)));
   }
 };
 

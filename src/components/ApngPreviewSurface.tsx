@@ -14,6 +14,7 @@ type ApngPreviewSurfaceProps = {
   fallbackClassName?: string;
   fallbackPreview?: string;
   showFallbackUnderlay?: boolean;
+  showLoadingLayer?: boolean;
   eager?: boolean;
   loadAfterFallback?: boolean;
   playDurationMs?: number;
@@ -27,6 +28,7 @@ export const ApngPreviewSurface = forwardRef<ApngPreviewSurfaceHandle, ApngPrevi
   fallbackClassName,
   fallbackPreview,
   showFallbackUnderlay = false,
+  showLoadingLayer = true,
   eager = false,
   loadAfterFallback = false,
   playDurationMs = 8000,
@@ -108,7 +110,7 @@ export const ApngPreviewSurface = forwardRef<ApngPreviewSurfaceHandle, ApngPrevi
           loading={eager ? "eager" : "lazy"}
           onLoad={() => setCanLoadAnimatedPreview(true)}
         />
-      ) : !isLoaded && isActive ? (
+      ) : showLoadingLayer && !isLoaded && isActive ? (
         <div className="wink-preview-loading-layer absolute inset-0" aria-hidden="true" />
       ) : null}
 
@@ -120,7 +122,7 @@ export const ApngPreviewSurface = forwardRef<ApngPreviewSurfaceHandle, ApngPrevi
           className={cn(
             "absolute inset-0 block h-full w-full object-contain transition-opacity duration-300",
             mediaClassName,
-            isLoaded && !hasError ? "opacity-100" : "opacity-0",
+            (isLoaded || !fallbackPreview) && !hasError ? "opacity-100" : "opacity-0",
           )}
           decoding="async"
           loading={eager ? "eager" : "lazy"}

@@ -111,14 +111,14 @@ export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, o
                   <div className="wink-preview-stage relative aspect-[3/4] w-full overflow-hidden rounded-[30px] border border-white/12 bg-[#060914] p-3">
                     <div className="wink-alpha-grid rounded-[24px]" aria-hidden="true" />
                     <ApngPreviewSurface
-                      src={filePath}
-                      fallbackPreview={previewPath}
+                      key={`${asset.id}-${previewSessionId}-${cacheVersion ?? "live"}`}
+                      src={`${filePath}${filePath.includes("?") ? "&" : "?"}session=${previewSessionId}`}
                       alt={`${asset.name} live preview`}
                       className="relative h-full w-full overflow-hidden rounded-[24px]"
                       mediaClassName="wink-card-live-preview wink-card-apng-preview rounded-[24px]"
                       fallbackClassName="rounded-[24px]"
                       eager
-                      loadAfterFallback
+                      showLoadingLayer={false}
                     />
                     <div className="wink-card-live-halo rounded-[24px]" aria-hidden="true" />
                   </div>

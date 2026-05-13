@@ -16,14 +16,15 @@ describe("Index page", () => {
       expect(screen.getAllByText(asset.name).length).toBeGreaterThan(0);
     }
 
+    expect(chatWinks.length).toBeGreaterThan(0);
     expect(fullscreenWinks.length).toBeGreaterThan(0);
-    expect(screen.getByText("EM CONSTRUÇÃO")).toBeInTheDocument();
+    expect(screen.queryByText("EM CONSTRUÇÃO")).not.toBeInTheDocument();
     expect(screen.queryByText("EM RECONSTRUCAO")).not.toBeInTheDocument();
 
     const totalEffects = chatWinks.length + fullscreenWinks.length;
     expect(screen.getAllByRole("button", { name: "PREVIEW" })).toHaveLength(totalEffects);
     expect(screen.getAllByRole("link", { name: /BAIXAR/i })).toHaveLength(totalEffects);
-  }, 20000);
+  }, 60000);
 
   it("filters fullscreen effects by selected category", () => {
     render(<Index />);

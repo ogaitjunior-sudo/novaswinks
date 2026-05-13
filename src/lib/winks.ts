@@ -16,6 +16,15 @@ export type ChatWinkCategory =
   | "Happy Birthday"
   | "Thumbs Up"
   | "Neon"
+  | "Rose"
+  | "Applause"
+  | "Laughter"
+  | "Win"
+  | "Christmas"
+  | "Snowman"
+  | "Bombs"
+  | "Friendship"
+  | "Premium Jackpot"
   | "Reactions"
   | "Birthday";
 export type FullscreenWinkCategory = "Celebration" | "Fireworks Grand Finale" | "Animated Neon Backgrounds" | "Ultimate Mixed Effects" | "Confetti Explosion" | "Premium Confetti" | "Premium" | "Golden Stars" | "Starry Sky / Blinking Stars" | "Christmas / Natal" | "Snowman / Boneco de Neve" | "Applause / Clapping / Ovation" | "Countdown Bingo" | "Bingo Balls" | "Hearts" | "Kiss" | "Thumbs Up" | "Flowers" | "Rose / Romantic Floral" | "Leprechaun" | "Bingo" | "Happy Birthday" | "Thanks / Thank You" | "Win / Victory / Big Reward" | "Friendship / Friends" | "Casino Emotion / Bingo Reaction Winks" | "Laughter / Funny Reaction" | "Golden Confetti / Luxury Celebration";
@@ -3512,11 +3521,169 @@ const disabledChatWinks: WinkAsset[] = [
   createPremiumChatWink("trh-chat-neon-jackpot-grid", "Neon Jackpot Grid", "Neon", "Grid neon futurista forma uma arena jackpot, segura o impacto visual e dissolve em glow particles.", "#58c7ff", "from-[#101d4d] via-[#101326] to-[#050816]", "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]", "Neon grid"),
 ];
 
-export const chatWinks: WinkAsset[] = [];
+const masterChatCategoryStyle: Record<ChatWinkCategory, {
+  accent: string;
+  surface: string;
+  badge: string;
+}> = {
+  Celebration: { accent: "#ff4fd8", surface: "from-[#321238] via-[#101428] to-[#050816]", badge: "border-[#ff4fd8]/30 bg-[#ff4fd8]/10 text-[#ffe0f6]" },
+  Confetti: { accent: "#f5c65b", surface: "from-[#321238] via-[#101428] to-[#050816]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  Bingo: { accent: "#f5c65b", surface: "from-[#2f2410] via-[#10182a] to-[#07101a]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  "Bingo Balls": { accent: "#a7ff5a", surface: "from-[#12345a] via-[#11172a] to-[#07101a]", badge: "border-[#a7ff5a]/30 bg-[#a7ff5a]/10 text-[#e9ffd2]" },
+  "Lucky Effects": { accent: "#12f7d6", surface: "from-[#0c3f2a] via-[#101a18] to-[#071019]", badge: "border-[#12f7d6]/30 bg-[#12f7d6]/10 text-[#c8fff8]" },
+  Hearts: { accent: "#ff63c7", surface: "from-[#481235] via-[#170f24] to-[#07101a]", badge: "border-[#ff63c7]/30 bg-[#ff63c7]/10 text-[#ffe0f2]" },
+  Kiss: { accent: "#ff63c7", surface: "from-[#4a1434] via-[#181129] to-[#07101a]", badge: "border-[#ff63c7]/30 bg-[#ff63c7]/10 text-[#ffe0f2]" },
+  "Happy Birthday": { accent: "#ff63c7", surface: "from-[#4a163a] via-[#151428] to-[#050816]", badge: "border-[#ff63c7]/30 bg-[#ff63c7]/10 text-[#ffe0f2]" },
+  "Thumbs Up": { accent: "#58c7ff", surface: "from-[#12345a] via-[#11172a] to-[#07101a]", badge: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]" },
+  Leprechaun: { accent: "#12f7d6", surface: "from-[#0c3f2a] via-[#101a18] to-[#071019]", badge: "border-[#12f7d6]/30 bg-[#12f7d6]/10 text-[#c8fff8]" },
+  "Golden Stars": { accent: "#f5c65b", surface: "from-[#3b2a12] via-[#15142b] to-[#07101a]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  Fireworks: { accent: "#58c7ff", surface: "from-[#271044] via-[#10182f] to-[#061019]", badge: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]" },
+  Neon: { accent: "#58c7ff", surface: "from-[#101d4d] via-[#101326] to-[#050816]", badge: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]" },
+  Rose: { accent: "#ff5ea8", surface: "from-[#4a1630] via-[#171025] to-[#07101a]", badge: "border-[#ff5ea8]/30 bg-[#ff5ea8]/10 text-[#ffe0ef]" },
+  Applause: { accent: "#f5c65b", surface: "from-[#34260f] via-[#121627] to-[#07101a]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  Laughter: { accent: "#ffd34d", surface: "from-[#3b2a10] via-[#171426] to-[#07101a]", badge: "border-[#ffd34d]/30 bg-[#ffd34d]/10 text-[#fff4c7]" },
+  Win: { accent: "#f5c65b", surface: "from-[#3b2a12] via-[#111428] to-[#07101a]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  Christmas: { accent: "#12f7d6", surface: "from-[#0c3f2a] via-[#12202b] to-[#071019]", badge: "border-[#12f7d6]/30 bg-[#12f7d6]/10 text-[#c8fff8]" },
+  Snowman: { accent: "#58c7ff", surface: "from-[#12345a] via-[#101a2b] to-[#07101a]", badge: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]" },
+  Bombs: { accent: "#ff5b4d", surface: "from-[#4a1710] via-[#171326] to-[#07101a]", badge: "border-[#ff5b4d]/30 bg-[#ff5b4d]/10 text-[#ffe1dc]" },
+  Friendship: { accent: "#ff9bd7", surface: "from-[#42213a] via-[#171326] to-[#07101a]", badge: "border-[#ff9bd7]/30 bg-[#ff9bd7]/10 text-[#ffe6f5]" },
+  "Premium Jackpot": { accent: "#f5c65b", surface: "from-[#3b2a12] via-[#111827] to-[#07101a]", badge: "border-[#f5c65b]/30 bg-[#f5c65b]/10 text-[#fff0c2]" },
+  Reactions: { accent: "#58c7ff", surface: "from-[#12345a] via-[#11172a] to-[#07101a]", badge: "border-[#58c7ff]/30 bg-[#58c7ff]/10 text-[#d7f4ff]" },
+  Birthday: { accent: "#ff63c7", surface: "from-[#4a163a] via-[#151428] to-[#050816]", badge: "border-[#ff63c7]/30 bg-[#ff63c7]/10 text-[#ffe0f2]" },
+};
+
+const masterChatWinkDefinitions: Array<{
+  id: string;
+  name: string;
+  category: ChatWinkCategory;
+  description: string;
+  eyebrow: string;
+}> = [
+  { id: "trh-chat-heavy-confetti-rain", name: "Heavy Confetti Rain", category: "Celebration", description: "Confetti leve e premium aparece, cresce, domina o chat e dissolve limpo.", eyebrow: "Confetti rain" },
+  { id: "trh-chat-party-horn-explosion", name: "Party Horn Explosion", category: "Celebration", description: "Party horns e ribbons criam um wink social rapido, legivel e festivo.", eyebrow: "Party horns" },
+  { id: "trh-chat-celebration-burst", name: "Celebration Burst", category: "Celebration", description: "Burst de festa com glow premium, hold curto e saida transparente.", eyebrow: "Party burst" },
+  { id: "trh-chat-ribbon-celebration", name: "Ribbon Celebration", category: "Celebration", description: "Ribbons coloridos cruzam o chat com energia de celebracao limpa.", eyebrow: "Ribbon party" },
+  { id: "trh-chat-firework-celebration", name: "Firework Celebration", category: "Celebration", description: "Fogos compactos de celebracao com spark trails e fade suave.", eyebrow: "Firework party" },
+  { id: "trh-chat-bingo-ball-bounce", name: "Bingo Ball Bounce", category: "Bingo", description: "Bolas de bingo pulam, colidem e seguram um momento jackpot compacto.", eyebrow: "Ball bounce" },
+  { id: "trh-chat-bingo-formation", name: "B...I...N...G...O Formation", category: "Bingo", description: "Letras BINGO formam um hero moment classico no estilo MSN Wink.", eyebrow: "Letter build" },
+  { id: "trh-chat-bingo-explosion", name: "Bingo Explosion", category: "Bingo", description: "BINGO aparece com impacto, glow dourado e dissolve em particulas leves.", eyebrow: "Bingo burst" },
+  { id: "trh-chat-jackpot-bingo-reveal", name: "Jackpot Bingo Reveal", category: "Bingo", description: "Reveal jackpot com bolas, brilho e leitura instantanea de BINGO.", eyebrow: "Jackpot reveal" },
+  { id: "trh-chat-mega-bingo-burst", name: "Mega Bingo Burst", category: "Bingo", description: "Burst compacto de bingo com composicao limpa e social.", eyebrow: "Mega bingo" },
+  { id: "trh-chat-big-heart-formation", name: "Giant Heart Formation", category: "Hearts", description: "Pequenos coracoes formam um grande coracao brilhante e emocional.", eyebrow: "Heart formation" },
+  { id: "trh-chat-heart-rain-formation", name: "Heart Rain", category: "Hearts", description: "Chuva romantica de coracoes vira hero heart e desaparece suave.", eyebrow: "Heart rain" },
+  { id: "trh-chat-double-heart-pop", name: "Double Heart Merge", category: "Hearts", description: "Dois coracoes se encontram e viram um grande momento love.", eyebrow: "Double heart" },
+  { id: "trh-chat-cupid-spark-drift", name: "Cupid Heart Pop", category: "Hearts", description: "Energia de cupido atravessa o chat e cria um pop romantico.", eyebrow: "Cupid pop" },
+  { id: "trh-chat-hearts-love-explosion", name: "Heart Sparkle Burst", category: "Hearts", description: "Sparkles rosas e coracoes criam um burst emocional premium.", eyebrow: "Sparkle burst" },
+  { id: "trh-chat-giant-kiss-mark-burst", name: "Giant Kiss Reveal", category: "Kiss", description: "Kiss mark gigante aparece com brilho pink e dissolve elegante.", eyebrow: "Kiss reveal" },
+  { id: "trh-chat-kiss-storm", name: "Kiss Storm", category: "Kiss", description: "Kisses flutuantes criam uma reacao flirty limpa e divertida.", eyebrow: "Kiss storm" },
+  { id: "trh-chat-lipstick-explosion", name: "Lipstick Explosion", category: "Kiss", description: "Energia de batom explode no centro com glow romantico.", eyebrow: "Lipstick burst" },
+  { id: "trh-chat-air-kiss-burst", name: "Air Kiss Burst", category: "Kiss", description: "Air kiss cruza o overlay e vira burst de coracoes.", eyebrow: "Air kiss" },
+  { id: "trh-chat-kiss-sparkle-finale", name: "Kiss Sparkle Finale", category: "Kiss", description: "Finale de kiss marks com sparkles leves e saida transparente.", eyebrow: "Kiss finale" },
+  { id: "trh-chat-happy-birthday-reveal", name: "Happy Birthday Reveal", category: "Happy Birthday", description: "HAPPY BIRTHDAY aparece como hero moment colorido e premium.", eyebrow: "Birthday text" },
+  { id: "trh-chat-balloon-celebration", name: "Balloon Party", category: "Happy Birthday", description: "Baloes sobem e criam uma festa leve de aniversario no chat.", eyebrow: "Balloons" },
+  { id: "trh-chat-birthday-cake-pop", name: "Birthday Cake Pop", category: "Happy Birthday", description: "Bolo popa no centro com velas, glow quente e fade macio.", eyebrow: "Cake pop" },
+  { id: "trh-chat-candle-light-wish", name: "Candle Glow", category: "Happy Birthday", description: "Velas e luz quente formam um momento de parabens elegante.", eyebrow: "Candle glow" },
+  { id: "trh-chat-birthday-finale", name: "Birthday Finale", category: "Happy Birthday", description: "Finale compacto com texto, brilho e energia de aniversario.", eyebrow: "Birthday finale" },
+  { id: "trh-chat-thumbs-up-pop", name: "Giant Like Pop", category: "Thumbs Up", description: "Like gigante aparece com energia social e brilho azul.", eyebrow: "Like pop" },
+  { id: "trh-chat-like-storm", name: "Like Storm", category: "Thumbs Up", description: "Likes entram em storm leve, divertido e legivel.", eyebrow: "Like storm" },
+  { id: "trh-chat-mega-approval", name: "Mega Approval", category: "Thumbs Up", description: "Aprovacao gigante com pop rings e glow premium.", eyebrow: "Approval" },
+  { id: "trh-chat-emoji-bounce", name: "Emoji Bounce", category: "Thumbs Up", description: "Thumbs-up pula com movimento elastico e saida limpa.", eyebrow: "Emoji bounce" },
+  { id: "trh-chat-social-like-finale", name: "Social Like Finale", category: "Thumbs Up", description: "Finale social de likes com brilho azul e particulas suaves.", eyebrow: "Like finale" },
+  { id: "trh-chat-shamrock-rain", name: "Shamrock Rain", category: "Leprechaun", description: "Shamrocks sortudos aparecem com glow verde e dourado.", eyebrow: "Shamrock rain" },
+  { id: "trh-chat-pot-of-gold-burst", name: "Pot of Gold Burst", category: "Leprechaun", description: "Pote de ouro explode em particulas lucky e dissolve limpo.", eyebrow: "Pot gold" },
+  { id: "trh-chat-lucky-coin-explosion", name: "Lucky Coin Explosion", category: "Leprechaun", description: "Moedas e sparkles verdes criam uma reacao de sorte.", eyebrow: "Coin burst" },
+  { id: "trh-chat-rainbow-luck-reveal", name: "Rainbow Luck Reveal", category: "Leprechaun", description: "Arco lucky compacto com brilho e final transparente.", eyebrow: "Rainbow luck" },
+  { id: "trh-chat-lucky-finale", name: "Lucky Finale", category: "Leprechaun", description: "Finale de sorte com emerald glow e sparkle dourado.", eyebrow: "Lucky finale" },
+  { id: "trh-chat-gold-star-rain", name: "Star Rain", category: "Golden Stars", description: "Estrelas douradas chovem com brilho magico e premium.", eyebrow: "Star rain" },
+  { id: "trh-chat-galaxy-stars", name: "Galaxy Stars", category: "Golden Stars", description: "Estrelas criam uma mini galaxia social e dissolvem.", eyebrow: "Galaxy stars" },
+  { id: "trh-chat-star-explosion-burst", name: "Star Explosion", category: "Golden Stars", description: "Estrela central detona fragmentos dourados leves.", eyebrow: "Star burst" },
+  { id: "trh-chat-twinkle-formation", name: "Twinkle Formation", category: "Golden Stars", description: "Twinkles formam um hero moment magico de jackpot.", eyebrow: "Twinkle" },
+  { id: "trh-chat-golden-star-finale", name: "Golden Star Finale", category: "Golden Stars", description: "Finale dourado de estrelas com hold cinematografico curto.", eyebrow: "Star finale" },
+  { id: "trh-chat-firework-launch", name: "Firework Launch", category: "Fireworks", description: "Rocket launch compacto com spark trails e explosao limpa.", eyebrow: "Launch" },
+  { id: "trh-chat-firework-burst", name: "Firework Burst", category: "Fireworks", description: "Burst de fogos legivel, premium e sem poluir o chat.", eyebrow: "Burst" },
+  { id: "trh-chat-jackpot-fireworks", name: "Jackpot Fireworks", category: "Fireworks", description: "Fogos de jackpot com glow e particulas controladas.", eyebrow: "Jackpot fireworks" },
+  { id: "trh-chat-neon-firework-sky", name: "Neon Firework Sky", category: "Fireworks", description: "Fogos neon em composicao limpa e social.", eyebrow: "Neon sky" },
+  { id: "trh-chat-grand-finale-fireworks", name: "Grand Finale Fireworks", category: "Fireworks", description: "Finale de fogos com explosao clara e fade total.", eyebrow: "Firework finale" },
+  { id: "trh-chat-neon-grid", name: "Neon Grid", category: "Neon", description: "Grid neon aparece, segura o clima cyber e dissolve.", eyebrow: "Neon grid" },
+  { id: "trh-chat-electric-pulse", name: "Electric Pulse", category: "Neon", description: "Pulso eletrico cyan com energia futurista leve.", eyebrow: "Electric pulse" },
+  { id: "trh-chat-neon-tunnel", name: "Neon Tunnel", category: "Neon", description: "Ribbons neon formam um mini tunnel e desaparecem.", eyebrow: "Neon tunnel" },
+  { id: "trh-chat-cyber-glow", name: "Cyber Glow", category: "Neon", description: "Glow cyber com linhas magenta e cyan sem virar wallpaper.", eyebrow: "Cyber glow" },
+  { id: "trh-chat-neon-jackpot-finale", name: "Neon Jackpot Finale", category: "Neon", description: "Finale neon jackpot com brilho controlado e limpo.", eyebrow: "Neon finale" },
+  { id: "trh-chat-rose-bloom", name: "Rose Bloom", category: "Rose", description: "Rosa romantica floresce no centro com glow elegante.", eyebrow: "Rose bloom" },
+  { id: "trh-chat-petal-storm", name: "Petal Storm", category: "Rose", description: "Petalas romanticas varrem o chat e dissolvem suave.", eyebrow: "Petal storm" },
+  { id: "trh-chat-rose-heart", name: "Rose Heart", category: "Rose", description: "Petalas formam um coracao floral premium.", eyebrow: "Rose heart" },
+  { id: "trh-chat-golden-rose", name: "Golden Rose", category: "Rose", description: "Rosa dourada com brilho VIP e particulas leves.", eyebrow: "Golden rose" },
+  { id: "trh-chat-rose-finale", name: "Rose Finale", category: "Rose", description: "Finale rose com bloom romantico e transparencia final.", eyebrow: "Rose finale" },
+  { id: "trh-chat-giant-clap", name: "Giant Clap", category: "Applause", description: "Maos de aplauso formam uma ovacao compacta.", eyebrow: "Clap" },
+  { id: "trh-chat-standing-ovation", name: "Standing Ovation", category: "Applause", description: "BRAVO social com glow dourado e hold curto.", eyebrow: "Ovation" },
+  { id: "trh-chat-golden-applause", name: "Golden Applause", category: "Applause", description: "Aplauso dourado com particulas de reconhecimento.", eyebrow: "Golden clap" },
+  { id: "trh-chat-bravo-burst", name: "Bravo Burst", category: "Applause", description: "BRAVO explode de forma leve e elegante.", eyebrow: "Bravo" },
+  { id: "trh-chat-applause-finale", name: "Applause Finale", category: "Applause", description: "Finale de aplausos com brilho social premium.", eyebrow: "Applause finale" },
+  { id: "trh-chat-giant-lol", name: "Giant LOL", category: "Laughter", description: "LOL gigante com energia divertida e leitura instantanea.", eyebrow: "LOL" },
+  { id: "trh-chat-emoji-storm", name: "Emoji Storm", category: "Laughter", description: "Emoji de risada cria storm leve e comico.", eyebrow: "Emoji storm" },
+  { id: "trh-chat-hahaha-wave", name: "HAHAHA Wave", category: "Laughter", description: "HAHAHA aparece em onda social e dissolve.", eyebrow: "HAHAHA" },
+  { id: "trh-chat-rofl-burst", name: "ROFL Burst", category: "Laughter", description: "ROFL surge com pop rings e brilho amarelo.", eyebrow: "ROFL" },
+  { id: "trh-chat-comedy-finale", name: "Comedy Finale", category: "Laughter", description: "Finale de risada com glow divertido e limpo.", eyebrow: "Comedy finale" },
+  { id: "trh-chat-win-reveal", name: "WIN Reveal", category: "Win", description: "WIN aparece com coroa e jackpot glow.", eyebrow: "WIN" },
+  { id: "trh-chat-big-win-burst", name: "BIG WIN Burst", category: "Win", description: "BIG WIN explode com energia de premio.", eyebrow: "BIG WIN" },
+  { id: "trh-chat-royal-crown-win", name: "Royal Crown Win", category: "Win", description: "Coroa dourada forma um momento vencedor VIP.", eyebrow: "Crown win" },
+  { id: "trh-chat-jackpot-victory", name: "Jackpot Victory", category: "Win", description: "Vitoria jackpot com brilho e particulas controladas.", eyebrow: "Victory" },
+  { id: "trh-chat-mega-win-finale", name: "Mega Win Finale", category: "Win", description: "Finale vencedor com WIN hero e fade elegante.", eyebrow: "Win finale" },
+  { id: "trh-chat-christmas-tree-reveal", name: "Christmas Tree Reveal", category: "Christmas", description: "Arvore natalina aparece com luzes e estrela.", eyebrow: "Tree reveal" },
+  { id: "trh-chat-snowfall-magic", name: "Snowfall Magic", category: "Christmas", description: "Neve magica e glow natalino aparecem e somem.", eyebrow: "Snowfall" },
+  { id: "trh-chat-santa-gift-burst", name: "Santa Gift Burst", category: "Christmas", description: "Presente natalino explode em magia leve.", eyebrow: "Gift burst" },
+  { id: "trh-chat-jingle-bells", name: "Jingle Bells", category: "Christmas", description: "Momento natalino dourado com brilho de sinos.", eyebrow: "Bells" },
+  { id: "trh-chat-christmas-finale", name: "Christmas Finale", category: "Christmas", description: "Finale de natal com MERRY, glow e fade limpo.", eyebrow: "Xmas finale" },
+  { id: "trh-chat-snowman-build", name: "Snowman Build", category: "Snowman", description: "Boneco de neve forma de frente com glow gelado.", eyebrow: "Snowman build" },
+  { id: "trh-chat-snowstorm-reveal", name: "Snowstorm Reveal", category: "Snowman", description: "Snowstorm revela boneco de neve e dissolve.", eyebrow: "Snowstorm" },
+  { id: "trh-chat-top-hat-pop", name: "Top Hat Pop", category: "Snowman", description: "Cartola cai e o snowman aparece com pop divertido.", eyebrow: "Top hat" },
+  { id: "trh-chat-snowman-gift", name: "Snowman Gift", category: "Snowman", description: "Snowman com energia de presente e brilho winter.", eyebrow: "Snow gift" },
+  { id: "trh-chat-snowman-finale", name: "Snowman Finale", category: "Snowman", description: "Finale de snowman com neve leve e saida total.", eyebrow: "Snow finale" },
+  { id: "trh-chat-cartoon-bomb-burst", name: "Cartoon Bomb Burst", category: "Bombs", description: "Bomba cartoon explode com BOOM legivel e controlado.", eyebrow: "Bomb burst" },
+  { id: "trh-chat-chain-explosion", name: "Chain Explosion", category: "Bombs", description: "Explosoes arcade em cadeia com spark trails leves.", eyebrow: "Chain boom" },
+  { id: "trh-chat-electric-bomb", name: "Electric Bomb", category: "Bombs", description: "Bomba eletrica com brilho e impacto cyber.", eyebrow: "Electric bomb" },
+  { id: "trh-chat-rocket-impact", name: "Rocket Impact", category: "Bombs", description: "Impacto de rocket cartoon com burst limpo.", eyebrow: "Rocket" },
+  { id: "trh-chat-mega-explosion-finale", name: "Mega Explosion Finale", category: "Bombs", description: "Finale explosivo arcade sem poluir o chat.", eyebrow: "Explosion finale" },
+  { id: "trh-chat-handshake-reveal", name: "Handshake Reveal", category: "Friendship", description: "Reacao de amizade com maos, coracao e glow quente.", eyebrow: "Handshake" },
+  { id: "trh-chat-best-friends-pop", name: "Best Friends Pop", category: "Friendship", description: "BEST FRIENDS aparece como sticker social premium.", eyebrow: "Best friends" },
+  { id: "trh-chat-friendship-heart", name: "Friendship Heart", category: "Friendship", description: "Coracao de amizade forma e dissolve em sparkles.", eyebrow: "Friend heart" },
+  { id: "trh-chat-friendship-stars", name: "Friendship Stars", category: "Friendship", description: "Estrelas e coracao criam badge de friendship.", eyebrow: "Friend stars" },
+  { id: "trh-chat-friendship-finale", name: "Friendship Finale", category: "Friendship", description: "Finale de amizade social com brilho caloroso.", eyebrow: "Friend finale" },
+  { id: "trh-chat-diamond-hit", name: "Diamond Hit", category: "Premium Jackpot", description: "Diamante premium aparece com prism glow.", eyebrow: "Diamond" },
+  { id: "trh-chat-gold-rush", name: "Gold Rush", category: "Premium Jackpot", description: "Gold rush leve com particulas de luxo.", eyebrow: "Gold rush" },
+  { id: "trh-chat-crystal-burst", name: "Crystal Burst", category: "Premium Jackpot", description: "Cristais formam burst VIP com brilho limpo.", eyebrow: "Crystal" },
+  { id: "trh-chat-vip-glow", name: "VIP Glow", category: "Premium Jackpot", description: "VIP glow com coroa e gold shine.", eyebrow: "VIP glow" },
+  { id: "trh-chat-luxury-jackpot-finale", name: "Luxury Jackpot Finale", category: "Premium Jackpot", description: "Finale de luxo com diamante, glow e fade transparente.", eyebrow: "Luxury finale" },
+];
+
+export const chatWinks: WinkAsset[] = masterChatWinkDefinitions.map((wink) => {
+  const style = masterChatCategoryStyle[wink.category];
+  return createPremiumChatWink(wink.id, wink.name, wink.category, wink.description, style.accent, style.surface, style.badge, wink.eyebrow);
+});
 
 export const fullscreenWinks = winkLibrary.filter((asset) => asset.category === "fullscreen");
 
-export const chatWinkCategoryOrder: ChatWinkCategory[] = ["Celebration", "Bingo", "Golden Stars", "Hearts", "Kiss", "Leprechaun", "Happy Birthday", "Thumbs Up", "Fireworks", "Neon"];
+export const chatWinkCategoryOrder: ChatWinkCategory[] = [
+  "Celebration",
+  "Bingo",
+  "Hearts",
+  "Kiss",
+  "Happy Birthday",
+  "Thumbs Up",
+  "Leprechaun",
+  "Golden Stars",
+  "Fireworks",
+  "Neon",
+  "Rose",
+  "Applause",
+  "Laughter",
+  "Win",
+  "Christmas",
+  "Snowman",
+  "Bombs",
+  "Friendship",
+  "Premium Jackpot",
+];
 
 export const chatWinkCategoryMeta: Record<
   ChatWinkCategory,
@@ -3527,30 +3694,10 @@ export const chatWinkCategoryMeta: Record<
     description: "Premium messenger-style party stickers with confetti, ribbons, soft glow, and clean festive reads.",
     vibe: "Festive and premium",
   },
-  "Golden Stars": {
-    accent: "#f5c65b",
-    description: "Luxurious golden star stickers with magical glow, elegant shine, and rewarding MSN-style emotion.",
-    vibe: "Magical and premium",
-  },
   Confetti: {
     accent: "#f5c65b",
     description: "Playful blasts for instant chat hype and lightweight celebration moments.",
     vibe: "Fun and bright",
-  },
-  Hearts: {
-    accent: "#ff6ec7",
-    description: "Social-first affection drops tuned for friendship, VIP warmth, and quick reactions.",
-    vibe: "Warm and social",
-  },
-  Kiss: {
-    accent: "#ff63c7",
-    description: "Flirty kiss-mark reactions with lipstick glow, romantic sparkles, and clean messenger-style exits.",
-    vibe: "Playful and flirty",
-  },
-  Fireworks: {
-    accent: "#58c7ff",
-    description: "Fast-impact sparkle moments that read clearly even in busy mobile chat streams.",
-    vibe: "Fast and flashy",
   },
   Bingo: {
     accent: "#f5c65b",
@@ -3567,10 +3714,15 @@ export const chatWinkCategoryMeta: Record<
     description: "Quick luck cues for bonus drops, streak nudges, and optimistic social energy.",
     vibe: "Light and lucky",
   },
-  Leprechaun: {
-    accent: "#12f7d6",
-    description: "Lucky shamrock and gold-burst chat overlays with emerald glow and premium jackpot timing.",
-    vibe: "Lucky and premium",
+  Hearts: {
+    accent: "#ff6ec7",
+    description: "Love reactions with soft hearts, pink glow, and clean emotional exits.",
+    vibe: "Warm and social",
+  },
+  Kiss: {
+    accent: "#ff63c7",
+    description: "Flirty kiss-mark reactions with lipstick glow, romantic sparkles, and clean messenger-style exits.",
+    vibe: "Playful and flirty",
   },
   "Happy Birthday": {
     accent: "#ff63c7",
@@ -3582,21 +3734,37 @@ export const chatWinkCategoryMeta: Record<
     description: "Readable approval reactions with giant like icons, pop rings, and social blue glow.",
     vibe: "Funny and social",
   },
+  Leprechaun: {
+    accent: "#12f7d6",
+    description: "Lucky shamrock and gold-burst chat overlays with emerald glow and premium jackpot timing.",
+    vibe: "Lucky and premium",
+  },
+  "Golden Stars": {
+    accent: "#f5c65b",
+    description: "Luxurious golden star stickers with magical glow, elegant shine, and rewarding MSN-style emotion.",
+    vibe: "Magical and premium",
+  },
+  Fireworks: {
+    accent: "#58c7ff",
+    description: "Fast-impact sparkle moments that read clearly even in busy mobile chat streams.",
+    vibe: "Fast and flashy",
+  },
   Neon: {
     accent: "#58c7ff",
     description: "Futuristic neon chat overlays that form, hold as a premium jackpot atmosphere, and dissolve cleanly.",
     vibe: "Futuristic and premium",
   },
-  Reactions: {
-    accent: "#58c7ff",
-    description: "Social sticker energy for expressive reactions, instant approval, and nostalgic messenger-style moments.",
-    vibe: "Expressive and social",
-  },
-  Birthday: {
-    accent: "#ff63c7",
-    description: "Birthday chat overlays com bolo hero, balloons e calor de sticker premium em estilo Windows Live Messenger.",
-    vibe: "Warm and festive",
-  },
+  Rose: { accent: "#ff5ea8", description: "Romantic rose and petal stickers with elegant floral glow.", vibe: "Elegant and romantic" },
+  Applause: { accent: "#f5c65b", description: "Clap and bravo stickers for social recognition moments.", vibe: "Social and celebratory" },
+  Laughter: { accent: "#ffd34d", description: "Funny LOL, HAHAHA, and ROFL reactions with comic glow.", vibe: "Funny and playful" },
+  Win: { accent: "#f5c65b", description: "WIN and BIG WIN stickers with crown, jackpot shine, and victory energy.", vibe: "Victorious and premium" },
+  Christmas: { accent: "#12f7d6", description: "Festive Christmas stickers with tree lights, snow, gifts, and warm glow.", vibe: "Festive and magical" },
+  Snowman: { accent: "#58c7ff", description: "Winter snowman stickers with snow, top hats, and icy sparkle.", vibe: "Winter and fun" },
+  Bombs: { accent: "#ff5b4d", description: "Cartoon arcade explosions with BOOM energy and controlled sparks.", vibe: "Explosive and comic" },
+  Friendship: { accent: "#ff9bd7", description: "Warm friendship stickers with hearts, stars, and social glow.", vibe: "Friendly and warm" },
+  "Premium Jackpot": { accent: "#f5c65b", description: "Luxury diamond, gold, crystal, and VIP jackpot stickers.", vibe: "Luxury and premium" },
+  Reactions: { accent: "#58c7ff", description: "Social sticker energy for expressive reactions and nostalgic messenger-style moments.", vibe: "Expressive and social" },
+  Birthday: { accent: "#ff63c7", description: "Birthday chat overlays with cake hero, balloons, and warm sticker polish.", vibe: "Warm and festive" },
 };
 
 export const fullscreenWinkCategoryOrder: FullscreenWinkCategory[] = ["Celebration", "Fireworks Grand Finale", "Animated Neon Backgrounds", "Ultimate Mixed Effects", "Confetti Explosion", "Premium Confetti", "Premium", "Golden Stars", "Starry Sky / Blinking Stars", "Christmas / Natal", "Snowman / Boneco de Neve", "Applause / Clapping / Ovation", "Countdown Bingo", "Bingo Balls", "Hearts", "Kiss", "Thumbs Up", "Flowers", "Rose / Romantic Floral", "Leprechaun", "Bingo", "Happy Birthday", "Thanks / Thank You", "Win / Victory / Big Reward", "Friendship / Friends", "Casino Emotion / Bingo Reaction Winks", "Laughter / Funny Reaction", "Golden Confetti / Luxury Celebration"];

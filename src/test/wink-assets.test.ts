@@ -62,7 +62,7 @@ describe("wink assets", () => {
       expect(alphaSummary.transparent).toBeGreaterThan(0);
       expect(alphaSummary.visible).toBeGreaterThan(0);
     }
-  }, 180000);
+  }, 360000);
 
   it("ships animated lottie json files for the fullscreen effects", async () => {
     const fullscreenFiles = fullscreenWinks.map((asset) => path.basename(asset.filePath));
@@ -128,4 +128,4 @@ describe("wink assets", () => {
       expect(alphaSummary.visible).toBeGreaterThan(0);
     }
   }, 25000);
-});
+  }, 180000);
