@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Monitor,
   Plus,
+  RefreshCw,
   Settings2,
   Star,
   UserRound,
@@ -21,6 +22,8 @@ import {
   chatWinks,
   fullscreenWinkCategoryOrder,
   fullscreenWinks,
+  type ChatWinkCategory,
+  type FullscreenWinkCategory,
   type WinkAsset,
 } from "@/lib/winks";
 
@@ -34,6 +37,16 @@ const floatingParticles = [
   { left: "84%", top: "15%", animationDelay: "-1s", animationDuration: "14s" },
   { left: "91%", top: "72%", animationDelay: "-4s", animationDuration: "19s" },
 ];
+
+const getFullscreenPreviewSpeed = (_asset: WinkAsset) => 1.35;
+
+const withCacheVersion = (url: string, cacheVersion?: string) => {
+  if (!cacheVersion) {
+    return url;
+  }
+
+  return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`;
+};
 
 const sidebarItems = [
   { label: "WINK STUDIO", icon: Star, active: true },
@@ -65,7 +78,37 @@ const laneCards = [
 
 const Index = () => {
   const [selectedAsset, setSelectedAsset] = useState<WinkAsset | null>(null);
+  const [previewSessionId, setPreviewSessionId] = useState(0);
+  const [selectedChatCategory, setSelectedChatCategory] = useState<ChatWinkCategory | "all">("all");
+  const [selectedFullscreenCategory, setSelectedFullscreenCategory] = useState<FullscreenWinkCategory | "all">("all");
+  const [assetCacheVersion, setAssetCacheVersion] = useState("");
+  const [cacheStatus, setCacheStatus] = useState("");
+  const hasChatWinks = chatWinks.length > 0;
   const hasFullscreenWinks = fullscreenWinks.length > 0;
+  const visibleChatWinks = selectedChatCategory === "all"
+    ? chatWinks
+    : chatWinks.filter((asset) => asset.chatCategory === selectedChatCategory);
+  const visibleFullscreenWinks = selectedFullscreenCategory === "all"
+    ? fullscreenWinks
+    : fullscreenWinks.filter((asset) => asset.fullscreenCategory === selectedFullscreenCategory);
+
+  const handleClearSiteCache = async () => {
+    try {
+      if ("caches" in window) {
+        const cacheNames = await window.caches.keys();
+        await Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName)));
+      }
+    } finally {
+      setAssetCacheVersion(`${Date.now()}`);
+      setCacheStatus("Cache limpo");
+      window.setTimeout(() => setCacheStatus(""), 2400);
+    }
+  };
+
+  const handleOpenAssetPreview = (asset: WinkAsset) => {
+    setPreviewSessionId((current) => current + 1);
+    setSelectedAsset(asset);
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -85,7 +128,7 @@ const Index = () => {
       <div className="studio-app-shell relative z-10 mx-auto grid min-h-screen max-w-[1720px] lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="studio-sidebar">
           <div className="studio-sidebar-brand">
-            <h1 className="studio-brand-title">TR HUNTER</h1>
+            <h1 className="studio-brand-title">GABRIEL</h1>
             <p className="studio-brand-subtitle">WINK STUDIO</p>
           </div>
 
@@ -106,7 +149,7 @@ const Index = () => {
             <div className="studio-sidebar-promo-icon">
               <Crown className="h-8 w-8" />
             </div>
-            <p className="studio-sidebar-promo-title">TR HUNTER</p>
+            <p className="studio-sidebar-promo-title">GABRIEL</p>
             <p className="studio-sidebar-promo-copy">PREMIUM PLATFORM</p>
           </div>
         </aside>
@@ -114,11 +157,20 @@ const Index = () => {
         <div className="studio-main-area">
           <header className="studio-topbar">
             <div className="studio-mobile-brand">
-              <p className="studio-brand-title">TR HUNTER</p>
+              <p className="studio-brand-title">GABRIEL</p>
               <p className="studio-brand-subtitle">WINK STUDIO</p>
             </div>
 
             <div className="ml-auto flex items-center gap-3">
+              <button type="button" className="studio-sort-button" onClick={handleClearSiteCache}>
+                <RefreshCw className="h-4 w-4" />
+                Limpar cache
+              </button>
+              {cacheStatus ? (
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                  {cacheStatus}
+                </span>
+              ) : null}
               <button type="button" className="studio-premium-pill">
                 <Crown className="h-4 w-4" />
                 PREMIUM ACCESS
@@ -152,52 +204,86 @@ const Index = () => {
                   <p className="studio-section-copy">APNG - 768x1024 - Overlays transparentes de bingo, jackpot e celebracao para chat</p>
                 </div>
 
-                <button type="button" className="studio-sort-button">
-                  Mais recentes
-                  <ChevronDown className="h-4 w-4" />
-                </button>
+                {hasChatWinks ? (
+                  <button type="button" className="studio-sort-button">
+                    Mais recentes
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <div className="studio-info-tile">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Colecao em construcao</span>
+                  </div>
+                )}
               </div>
 
-              <div className="studio-filter-row">
-                <button type="button" className="studio-filter-pill is-active">
-                  TODOS
-                </button>
-                {chatWinkCategoryOrder.map((category) => (
-                  <button key={category} type="button" className="studio-filter-pill">
-                    {category}
+              {hasChatWinks ? (
+                <div className="studio-filter-row">
+                  <button
+                    type="button"
+                    className={`studio-filter-pill ${selectedChatCategory === "all" ? "is-active" : ""}`}
+                    aria-pressed={selectedChatCategory === "all"}
+                    onClick={() => setSelectedChatCategory("all")}
+                  >
+                    TODOS
                   </button>
-                ))}
-              </div>
+                  {chatWinkCategoryOrder.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`studio-filter-pill ${selectedChatCategory === category ? "is-active" : ""}`}
+                      aria-pressed={selectedChatCategory === category}
+                      onClick={() => setSelectedChatCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="chat-gallery-grid">
-                {chatWinks.map((asset) => (
-                  <WinkCard
-                    key={asset.id}
-                    id={asset.id}
-                    title={asset.name}
-                    type="CHAT WINK"
-                    format={asset.format}
-                    resolution={asset.resolution}
-                    preview={asset.previewPath}
-                    hoverPreviewUrl={asset.filePath}
-                    autoplayPreviewOnHover
-                    downloadUrl={asset.filePath}
-                    downloadLabel="BAIXAR APNG"
-                    accentColor={asset.accent}
-                    className="chat-wink-card"
-                    onOpenPreview={() => setSelectedAsset(asset)}
-                  />
-                ))}
+                {hasChatWinks ? (
+                  visibleChatWinks.map((asset) => (
+                    <WinkCard
+                      key={asset.id}
+                      id={asset.id}
+                      title={asset.name}
+                      type="CHAT WINK"
+                      format={asset.format}
+                      resolution={asset.resolution}
+                      preview={withCacheVersion(asset.previewPath, assetCacheVersion)}
+                      hoverPreviewUrl={withCacheVersion(asset.filePath, assetCacheVersion)}
+                      autoplayPreviewOnHover
+                      downloadUrl={asset.filePath}
+                      downloadLabel="BAIXAR APNG"
+                      accentColor={asset.accent}
+                      className="chat-wink-card"
+                      onOpenPreview={() => handleOpenAssetPreview(asset)}
+                    />
+                  ))
+                ) : (
+                  <article className="more-effects-card fullscreen-empty-card">
+                    <div className="more-effects-card-icon">
+                      <Plus className="h-7 w-7" />
+                    </div>
+                    <p className="more-effects-card-title">EM CONSTRUÇÃO</p>
+                    <p className="more-effects-card-copy">
+                      Removemos a colecao atual de CHAT WINKS para recriar os efeitos com mais calma.
+                    </p>
+                  </article>
+                )}
               </div>
 
-              <div className="studio-slider-dots" aria-hidden="true">
-                <span className="is-active" />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
+              {hasChatWinks ? (
+                <div className="studio-slider-dots" aria-hidden="true">
+                  <span className="is-active" />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              ) : null}
             </section>
 
             <div className="studio-section-divider" />
@@ -227,11 +313,22 @@ const Index = () => {
 
               {hasFullscreenWinks ? (
                 <div className="studio-filter-row">
-                  <button type="button" className="studio-filter-pill is-active">
+                  <button
+                    type="button"
+                    className={`studio-filter-pill ${selectedFullscreenCategory === "all" ? "is-active" : ""}`}
+                    aria-pressed={selectedFullscreenCategory === "all"}
+                    onClick={() => setSelectedFullscreenCategory("all")}
+                  >
                     TODOS
                   </button>
                   {fullscreenWinkCategoryOrder.map((category) => (
-                    <button key={category} type="button" className="studio-filter-pill">
+                    <button
+                      key={category}
+                      type="button"
+                      className={`studio-filter-pill ${selectedFullscreenCategory === category ? "is-active" : ""}`}
+                      aria-pressed={selectedFullscreenCategory === category}
+                      onClick={() => setSelectedFullscreenCategory(category)}
+                    >
                       {category}
                     </button>
                   ))}
@@ -241,7 +338,7 @@ const Index = () => {
               <div className="fullscreen-gallery-grid">
                 {hasFullscreenWinks ? (
                   <>
-                    {fullscreenWinks.map((asset) => (
+                    {visibleFullscreenWinks.map((asset) => (
                       <WinkCard
                         key={asset.id}
                         id={asset.id}
@@ -249,24 +346,27 @@ const Index = () => {
                         type="FULL BINGO WINK"
                         format={asset.format}
                         resolution={asset.resolution}
-                        preview={asset.previewPath}
-                        lottiePreviewUrl={asset.filePath}
-                        lottieStartAtProgress={asset.previewStartProgress}
+                        preview={withCacheVersion(asset.previewPath, assetCacheVersion)}
+                        lottiePreviewUrl={withCacheVersion(asset.filePath, assetCacheVersion)}
+                        lottieStartAtProgress={0}
+                        lottiePlaybackSpeed={getFullscreenPreviewSpeed(asset)}
                         downloadUrl={asset.filePath}
                         downloadLabel="BAIXAR JSON"
                         accentColor={asset.accent}
                         className="fullscreen-wink-card"
-                        onOpenPreview={() => setSelectedAsset(asset)}
+                        onOpenPreview={() => handleOpenAssetPreview(asset)}
                       />
                     ))}
 
-                    <article className="more-effects-card">
-                      <div className="more-effects-card-icon">
-                        <Plus className="h-7 w-7" />
-                      </div>
-                      <p className="more-effects-card-title">MAIS EFEITOS</p>
-                      <p className="more-effects-card-copy">Novos efeitos incriveis em breve!</p>
-                    </article>
+                    {selectedFullscreenCategory === "all" ? (
+                      <article className="more-effects-card">
+                        <div className="more-effects-card-icon">
+                          <Plus className="h-7 w-7" />
+                        </div>
+                        <p className="more-effects-card-title">MAIS EFEITOS</p>
+                        <p className="more-effects-card-copy">Novos efeitos incriveis em breve!</p>
+                      </article>
+                    ) : null}
                   </>
                 ) : (
                   <article className="more-effects-card fullscreen-empty-card">
@@ -283,14 +383,19 @@ const Index = () => {
             </section>
 
             <footer className="studio-footer">
-              <span>TR HUNTER WINK STUDIO</span>
+              <span>GABRIEL WINK STUDIO</span>
               <span>PREMIUM EFFECTS FOR PREMIUM PLAYERS</span>
             </footer>
           </div>
         </div>
       </div>
 
-      <WinkPreviewDialog asset={selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <WinkPreviewDialog
+        asset={selectedAsset}
+        cacheVersion={assetCacheVersion}
+        previewSessionId={previewSessionId}
+        onOpenChange={(open) => !open && setSelectedAsset(null)}
+      />
     </main>
   );
 };

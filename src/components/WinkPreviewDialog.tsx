@@ -1,5 +1,7 @@
-import { Download, Folder, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, Folder, Gauge, Play } from "lucide-react";
 
+import { ApngPreviewSurface } from "@/components/ApngPreviewSurface";
 import { LottiePreviewSurface } from "@/components/LottiePreviewSurface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,16 +17,47 @@ import { normalizeWinkFormats, type WinkAsset } from "@/lib/winks";
 
 type WinkPreviewDialogProps = {
   asset: WinkAsset | null;
+  cacheVersion?: string;
+  previewSessionId?: number;
   onOpenChange: (open: boolean) => void;
 };
 
-export const WinkPreviewDialog = ({ asset, onOpenChange }: WinkPreviewDialogProps) => {
+const withCacheVersion = (url: string, cacheVersion?: string) => {
+  if (!cacheVersion) {
+    return url;
+  }
+
+  return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`;
+};
+
+export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, onOpenChange }: WinkPreviewDialogProps) => {
+  const defaultFullscreenPlaybackSpeed = 1.35;
+  const [fullscreenPlaybackSpeed, setFullscreenPlaybackSpeed] = useState(defaultFullscreenPlaybackSpeed);
+
+  useEffect(() => {
+    setFullscreenPlaybackSpeed(defaultFullscreenPlaybackSpeed);
+  }, [asset?.id, defaultFullscreenPlaybackSpeed]);
+
   if (!asset) {
     return null;
   }
 
   const isChat = asset.category === "chat";
   const formatBadges = normalizeWinkFormats(asset.format);
+  const fullscreenStartProgress = 0;
+  const previewPath = withCacheVersion(asset.previewPath, cacheVersion);
+  const filePath = withCacheVersion(asset.filePath, cacheVersion);
+
+  const speedOptions = [
+    { label: "0.75x", value: 0.75 },
+    { label: "1x", value: 1 },
+    { label: "1.35x", value: 1.35 },
+    { label: "1.5x", value: 1.5 },
+    { label: "1.75x", value: 1.75 },
+    { label: "2x", value: 2 },
+    { label: "2.5x", value: 2.5 },
+    { label: "3x", value: 3 },
+  ];
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -77,12 +110,15 @@ export const WinkPreviewDialog = ({ asset, onOpenChange }: WinkPreviewDialogProp
                 <div className="mx-auto flex max-w-[420px] justify-center rounded-[36px] border border-white/12 bg-black/25 p-4 shadow-[0_35px_90px_rgba(0,0,0,0.55)]">
                   <div className="wink-preview-stage relative aspect-[3/4] w-full overflow-hidden rounded-[30px] border border-white/12 bg-[#060914] p-3">
                     <div className="wink-alpha-grid rounded-[24px]" aria-hidden="true" />
-                    <img
-                      src={asset.filePath}
+                    <ApngPreviewSurface
+                      src={filePath}
+                      fallbackPreview={previewPath}
                       alt={`${asset.name} live preview`}
-                      className="wink-card-live-preview relative h-full w-full rounded-[24px] object-contain"
-                      decoding="async"
-                      loading="eager"
+                      className="relative h-full w-full overflow-hidden rounded-[24px]"
+                      mediaClassName="wink-card-live-preview wink-card-apng-preview rounded-[24px]"
+                      fallbackClassName="rounded-[24px]"
+                      eager
+                      loadAfterFallback
                     />
                     <div className="wink-card-live-halo rounded-[24px]" aria-hidden="true" />
                   </div>
@@ -90,12 +126,33 @@ export const WinkPreviewDialog = ({ asset, onOpenChange }: WinkPreviewDialogProp
               ) : (
                 <div className="wink-preview-stage relative aspect-[15/8] overflow-hidden rounded-[28px] border border-white/12 bg-[#060914] p-4">
                   <div className="wink-alpha-grid rounded-[22px]" aria-hidden="true" />
+                  <div className="absolute right-5 top-5 z-20 flex items-center gap-1 rounded-full border border-white/12 bg-black/45 p-1 text-xs text-white/80 shadow-[0_12px_32px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                    <Gauge className="ml-2 h-3.5 w-3.5 text-white/70" />
+                    {speedOptions.map((option) => (
+                      <Button
+                        key={option.label}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-7 rounded-full px-2.5 font-semibold tracking-[0.12em] text-white/70 hover:bg-white/10 hover:text-white",
+                          fullscreenPlaybackSpeed === option.value && "bg-white/18 text-white shadow-[0_0_18px_var(--wink-accent)]",
+                        )}
+                        onClick={() => setFullscreenPlaybackSpeed(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
                   <LottiePreviewSurface
-                    src={asset.filePath}
-                    fallbackPreview={asset.previewPath}
+                    key={`${asset.id}-${previewSessionId}-${fullscreenPlaybackSpeed}-${cacheVersion ?? "live"}`}
+                    src={filePath}
+                    fallbackPreview={previewPath}
                     alt={`${asset.name} live Lottie preview`}
                     className="wink-card-live-preview rounded-[22px]"
-                    startAtProgress={asset.previewStartProgress}
+                    startAtProgress={fullscreenStartProgress}
+                    playbackSpeed={fullscreenPlaybackSpeed}
+                    showFallbackBeforeReady={false}
                   />
                   <div className="wink-card-live-halo rounded-[22px]" aria-hidden="true" />
                 </div>

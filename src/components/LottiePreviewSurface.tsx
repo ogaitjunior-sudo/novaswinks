@@ -10,6 +10,7 @@ type AnimationController = {
   play?: () => void;
   removeEventListener?: (eventName: string, callback: (event?: unknown) => void) => void;
   resize?: () => void;
+  setSubframe?: (value: boolean) => void;
   setSpeed?: (value: number) => void;
 };
 
@@ -23,8 +24,11 @@ type LottiePreviewSurfaceProps = {
   alt: string;
   className?: string;
   startAtProgress?: number;
+  playbackSpeed?: number;
   autoplay?: boolean;
+  loop?: boolean;
   showFallbackUnderlay?: boolean;
+  showFallbackBeforeReady?: boolean;
 };
 
 export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, LottiePreviewSurfaceProps>(({
@@ -32,9 +36,12 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
   fallbackPreview,
   alt,
   className,
-  startAtProgress = 0.38,
+  startAtProgress = 0,
+  playbackSpeed = 1,
   autoplay = true,
+  loop = false,
   showFallbackUnderlay = false,
+  showFallbackBeforeReady = true,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationRef = useRef<AnimationController | null>(null);
@@ -47,32 +54,50 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
     currentFrame: 0,
     frameRate: 30,
     isPlaying: false,
-    intervalId: 0,
+    rafId: 0,
+    lastTimestamp: 0,
   });
   const [hasError, setHasError] = useState(import.meta.env.MODE === "test");
   const [isReady, setIsReady] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(autoplay);
 
   const stopPlaybackLoop = () => {
-    if (playbackRef.current.intervalId) {
-      clearInterval(playbackRef.current.intervalId);
-      playbackRef.current.intervalId = 0;
+    if (playbackRef.current.rafId) {
+      cancelAnimationFrame(playbackRef.current.rafId);
+      playbackRef.current.rafId = 0;
     }
+    playbackRef.current.lastTimestamp = 0;
   };
 
   const runPlaybackLoop = () => {
-    if (playbackRef.current.intervalId) return;
+    if (playbackRef.current.rafId) return;
 
-    playbackRef.current.intervalId = window.setInterval(() => {
+    const tick = (timestamp: number) => {
       const animation = animationRef.current;
       if (!animation || !playbackRef.current.isPlaying) {
+        playbackRef.current.rafId = 0;
+        playbackRef.current.lastTimestamp = 0;
         return;
       }
+
+      const lastTimestamp = playbackRef.current.lastTimestamp || timestamp;
+      const deltaSeconds = Math.min(0.08, Math.max(0, (timestamp - lastTimestamp) / 1000));
+      playbackRef.current.lastTimestamp = timestamp;
 
       const totalFrames = frameWindowRef.current.totalFrames;
       const inPoint = frameWindowRef.current.inPoint;
       const endFrame = inPoint + totalFrames;
-      const advancedFrame = playbackRef.current.currentFrame + 1.08;
+      const advancedFrame = playbackRef.current.currentFrame + (playbackRef.current.frameRate * playbackSpeed * deltaSeconds);
+
+      if (!loop && advancedFrame >= endFrame) {
+        const finalFrame = Math.max(inPoint, endFrame - 1);
+        playbackRef.current.currentFrame = finalFrame;
+        playbackRef.current.isPlaying = false;
+        containerRef.current?.setAttribute("data-current-frame", `${Math.round(finalFrame)}`);
+        animation.goToAndStop?.(finalFrame, true);
+        stopPlaybackLoop();
+        return;
+      }
 
       let nextFrame = advancedFrame;
       while (nextFrame >= endFrame) {
@@ -82,14 +107,17 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
       playbackRef.current.currentFrame = nextFrame;
       containerRef.current?.setAttribute("data-current-frame", `${Math.round(nextFrame)}`);
       animation.goToAndStop?.(nextFrame, true);
-    }, Math.max(16, Math.round(1000 / playbackRef.current.frameRate)));
+      playbackRef.current.rafId = requestAnimationFrame(tick);
+    };
+
+    playbackRef.current.rafId = requestAnimationFrame(tick);
   };
 
   const playFromProgress = (progress: number) => {
     const animation = animationRef.current;
     if (!animation) return;
 
-    const clampedProgress = Math.min(0.98, Math.max(0, progress));
+    const clampedProgress = Math.min(0.999, Math.max(0, progress));
     const startFrame = Math.max(
       frameWindowRef.current.inPoint,
       Math.min(
@@ -98,7 +126,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
       ),
     );
 
-    animation.setSpeed?.(1);
+    animation.setSpeed?.(playbackSpeed);
     playbackRef.current.currentFrame = startFrame;
     playbackRef.current.isPlaying = true;
     setHasStartedPlayback(true);
@@ -131,11 +159,13 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
     if (!containerRef.current) return;
 
     let active = true;
+    let hasStarted = false;
+    const fallbackStartTimers: number[] = [];
 
     const loadAnimation = async () => {
       try {
         const { default: lottie } = await import("lottie-web");
-        const response = await fetch(src);
+        const response = await fetch(src, { cache: "no-store" });
         if (!response.ok) {
           throw new Error(`Unable to load ${src}`);
         }
@@ -147,7 +177,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
         const animation = lottie.loadAnimation({
           container: containerRef.current,
           renderer: "svg",
-          loop: true,
+          loop: false,
           autoplay: false,
           animationData,
           rendererSettings: {
@@ -155,6 +185,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
             progressiveLoad: true,
           },
         });
+        animation.setSubframe?.(true);
 
         const inPoint = typeof animationData.ip === "number" ? animationData.ip : 0;
         const outPoint = typeof animationData.op === "number" ? animationData.op : inPoint + 1;
@@ -174,7 +205,8 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
         animation.goToAndStop?.(restingStartFrame, true);
 
         const startPlayback = () => {
-          if (!active) return;
+          if (!active || hasStarted) return;
+          hasStarted = true;
           setIsReady(true);
           if (autoplay) {
             playFromProgress(startAtProgress);
@@ -192,7 +224,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
         animation.addEventListener?.("data_ready", startPlayback);
 
         for (const delay of [80, 420, 1100, 2100]) {
-          setTimeout(startPlayback, delay);
+          fallbackStartTimers.push(window.setTimeout(startPlayback, delay));
         }
       } catch {
         if (active) {
@@ -207,13 +239,17 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
 
     return () => {
       active = false;
+      hasStarted = false;
+      for (const timerId of fallbackStartTimers) {
+        window.clearTimeout(timerId);
+      }
       pendingPlaybackProgressRef.current = null;
       playbackRef.current.isPlaying = false;
       stopPlaybackLoop();
       animationRef.current?.destroy();
       animationRef.current = null;
     };
-  }, [autoplay, src, startAtProgress]);
+  }, [autoplay, loop, playbackSpeed, src, startAtProgress]);
 
   if (hasError) {
     return (
@@ -230,6 +266,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
   return (
     <div className={cn("relative h-full w-full", className)}>
       {!isReady || showFallbackUnderlay || !hasStartedPlayback ? (
+        showFallbackBeforeReady || showFallbackUnderlay || !hasStartedPlayback ? (
         <img
           src={fallbackPreview}
           alt={alt}
@@ -240,6 +277,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
           decoding="async"
           loading={showFallbackUnderlay ? "eager" : "lazy"}
         />
+        ) : null
       ) : null}
       <div
         ref={containerRef}

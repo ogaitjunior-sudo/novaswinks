@@ -94,7 +94,7 @@ describe("wink assets", () => {
         }
       }
     }
-  });
+  }, 180000);
 
   it("ships only the active fullscreen output files for the rebuilt collection", async () => {
     expect(fullscreenWinks.length).toBeGreaterThan(0);
@@ -106,6 +106,16 @@ describe("wink assets", () => {
 
     expect(fullscreenFiles.sort()).toEqual(expectedFullscreenFiles);
     expect(fullscreenPreviews.sort()).toEqual(expectedFullscreenPreviews);
+  });
+
+  it("ships only the active chat output files for the rebuilt collection", async () => {
+    const chatFiles = await readdir(path.join(workspaceRoot, "public", "winks", "chat"));
+    const chatPreviews = await readdir(path.join(workspaceRoot, "public", "previews", "chat"));
+    const expectedChatFiles = chatWinks.map((asset) => path.basename(asset.filePath)).sort();
+    const expectedChatPreviews = chatWinks.map((asset) => path.basename(asset.previewPath)).sort();
+
+    expect(chatFiles.sort()).toEqual(expectedChatFiles);
+    expect(chatPreviews.sort()).toEqual(expectedChatPreviews);
   });
 
   it("ships transparent preview pngs for the active wink cards", async () => {

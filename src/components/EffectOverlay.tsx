@@ -23,6 +23,17 @@ const palette = ["#ff4ecd", "#a855f7", "#3b82f6", "#22d3ee", "#fbbf24", "#fb923c
 const flowerPalette = ["#f9a8d4", "#f472b6", "#fbcfe8", "#fef3c7", "#ffffff"];
 const luckyPalette = ["#22c55e", "#86efac", "#fbbf24", "#fde68a", "#ffffff"];
 const heartPalette = ["#ff4ecd", "#f43f5e", "#ec4899", "#ffffff"];
+const CORE_WINKS = new Set([
+  "celebration",
+  "bingo",
+  "flowers",
+  "thumbs-up",
+  "leprechaun",
+  "countdown",
+  "trivia-time",
+  "happy-birthday",
+]);
+const WINK_LIFETIME_MS = 8200;
 
 const normalizeCelebrationKey = (effect: CelebrationId) => {
   const key = String(effect).trim().toLowerCase();
@@ -48,6 +59,8 @@ export const EffectOverlay = ({ effect, runId, onDone }: Props) => {
     if (!effect) return;
 
     const key = normalizeCelebrationKey(effect);
+    const isCoreWink = CORE_WINKS.has(key);
+    const timingScale = isCoreWink ? 1.4 : 1;
     const make = (
       count: number,
       opts: Partial<Item> & { emojis?: string[]; colors?: string[] },
@@ -56,9 +69,9 @@ export const EffectOverlay = ({ effect, runId, onDone }: Props) => {
         id: Date.now() + index + Math.random(),
         left: Math.random() * 100,
         top: Math.random() * 90,
-        delay: Math.random() * 0.8,
+        delay: Math.random() * (isCoreWink ? 1.6 : 0.8) * timingScale,
         size: (opts.size ?? 24) + Math.random() * 18,
-        duration: (opts.duration ?? 4) + Math.random() * 2.4,
+        duration: ((opts.duration ?? 4) + Math.random() * (isCoreWink ? 3.2 : 2.4)) * timingScale,
         drift: (Math.random() - 0.5) * 180,
         emoji: opts.emojis ? opts.emojis[Math.floor(Math.random() * opts.emojis.length)] : undefined,
         color: opts.colors ? opts.colors[Math.floor(Math.random() * opts.colors.length)] : undefined,
@@ -73,7 +86,7 @@ export const EffectOverlay = ({ effect, runId, onDone }: Props) => {
         next = make(28, { colors: palette, size: 8, duration: 3.1 });
         setFlash("bg-gradient-neon");
         setTimeout(() => setFlash(null), 220);
-        lifetime = 4200;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "bingo":
         next = make(10, { emojis: ["7", "8", "3", "9", "!"], size: 22, duration: 0 });
@@ -83,21 +96,21 @@ export const EffectOverlay = ({ effect, runId, onDone }: Props) => {
           setFlash("bg-gradient-neon");
           setTimeout(() => setFlash(null), 220);
         }, 520);
-        lifetime = 4400;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "flowers":
         next = make(16, { colors: flowerPalette, size: 10, duration: 4.8 });
-        lifetime = 5000;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "thumbs-up":
         next = make(8, { emojis: ["+1", "OK"], size: 24, duration: 0 });
         setFlash("bg-gradient-neon");
         setTimeout(() => setFlash(null), 180);
-        lifetime = 3200;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "leprechaun":
         next = make(16, { colors: luckyPalette, size: 10, duration: 4.2 });
-        lifetime = 4600;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "countdown":
         setFlash("bg-white");
@@ -110,19 +123,19 @@ export const EffectOverlay = ({ effect, runId, onDone }: Props) => {
           setFlash("bg-white");
           setTimeout(() => setFlash(null), 220);
         }, 1800);
-        lifetime = 3400;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "trivia-time":
         next = make(10, { emojis: ["?"], size: 28, duration: 0 });
         setFlash("bg-gradient-neon");
         setTimeout(() => setFlash(null), 240);
-        lifetime = 3600;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "happy-birthday":
         next = make(18, { colors: palette, size: 8, duration: 4.4 });
         setFlash("bg-white");
         setTimeout(() => setFlash(null), 180);
-        lifetime = 4200;
+        lifetime = WINK_LIFETIME_MS;
         break;
       case "balloons":
         next = make(18, { colors: palette, size: 12, duration: 6 });

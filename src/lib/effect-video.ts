@@ -68,6 +68,42 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const easeOut = (value: number) => 1 - (1 - value) ** 3;
 const easeInOut = (value: number) => (value < 0.5 ? 2 * value * value : 1 - (-2 * value + 2) ** 2 / 2);
 const cycle = (value: number) => ((value % 1) + 1) % 1;
+const CORE_WINK_KEYS = new Set([
+  "celebration",
+  "bingo",
+  "flowers",
+  "thumbs-up",
+  "leprechaun",
+  "countdown",
+  "trivia-time",
+  "happy-birthday",
+]);
+const WINK_DURATION_MS = 8000;
+const createWinkBeat = (value: number) => {
+  const progress = clamp01(value);
+  const intro = easeOut(clamp01(progress / 0.18));
+  const formation = easeOut(clamp01((progress - 0.18) / 0.2));
+  const hero = easeInOut(clamp01((progress - 0.38) / 0.18));
+  const hold = easeInOut(clamp01((progress - 0.56) / 0.19));
+  const dissolve = easeInOut(clamp01((progress - 0.75) / 0.13));
+  const exit = easeInOut(clamp01((progress - 0.88) / 0.12));
+  const renderTime = progress < 0.56
+    ? 0.018 + (easeInOut(clamp01(progress / 0.56)) * 0.802)
+    : progress < 0.75
+      ? 0.82 + (easeInOut(clamp01((progress - 0.56) / 0.19)) * 0.08)
+      : 0.9 + (easeInOut(clamp01((progress - 0.75) / 0.25)) * 0.1);
+  return {
+    progress,
+    intro,
+    formation,
+    hero,
+    hold,
+    dissolve,
+    exit,
+    renderTime,
+    visibleAlpha: (0.12 + (intro * 0.88)) * (1 - exit),
+  };
+};
 
 const pick = <T,>(items: T[], rng: () => number) => items[Math.floor(rng() * items.length)];
 
@@ -1239,32 +1275,37 @@ export const renderEffectFrame = (ctx: CanvasRenderingContext2D, id: Celebration
   ctx.lineCap = "round";
   const key = normalizeCelebrationKey(id);
   const rng = createRng(seedFromText(key));
+  const winkBeat = CORE_WINK_KEYS.has(key) ? createWinkBeat(t) : null;
+  const sceneTime = winkBeat?.renderTime ?? t;
+
+  ctx.save();
+  ctx.globalAlpha = winkBeat?.visibleAlpha ?? 1;
 
   switch (key) {
     case "celebration":
-      renderCelebrationScene(ctx, size, t, rng);
+      renderCelebrationScene(ctx, size, sceneTime, rng);
       break;
     case "bingo":
-      renderBingoScene(ctx, size, t, rng);
+      renderBingoScene(ctx, size, sceneTime, rng);
       break;
     case "flowers":
-      renderFlowersScene(ctx, size, t, rng);
+      renderFlowersScene(ctx, size, sceneTime, rng);
       break;
     case "thumbs-up":
-      renderThumbsUpScene(ctx, size, t, rng);
+      renderThumbsUpScene(ctx, size, sceneTime, rng);
       break;
     case "leprechaun":
-      renderLeprechaunScene(ctx, size, t, rng);
+      renderLeprechaunScene(ctx, size, sceneTime, rng);
       break;
     case "countdown":
-      renderCountdownScene(ctx, size, t, rng);
+      renderCountdownScene(ctx, size, sceneTime, rng);
       break;
     case "trivia-time":
-      renderTriviaTimeScene(ctx, size, t, rng);
+      renderTriviaTimeScene(ctx, size, sceneTime, rng);
       break;
     case "happy-birthday":
     case "happy":
-      renderHappyBirthdayScene(ctx, size, t, rng);
+      renderHappyBirthdayScene(ctx, size, sceneTime, rng);
       break;
     case "confetti-cannon":
       drawBurst(ctx, size, rng, BASE_COLORS, cycle(t * 1.4), size * 0.13, size * 0.82, 90, ["rect", "circle", "star"]);
@@ -1410,6 +1451,8 @@ export const renderEffectFrame = (ctx: CanvasRenderingContext2D, id: Celebration
       drawFalling(ctx, size, rng, GOLD_COLORS, t, 90, "spark");
       break;
   }
+
+  ctx.restore();
 };
 
 type OverlayMode = "none" | "rising" | "falling" | "twinkle";
@@ -1437,6 +1480,8 @@ type OverlayScene = {
   mode: OverlayMode;
   items: OverlaySceneItem[];
   flashes: OverlayFlash[];
+  durationMs?: number;
+  timeScale?: number;
 };
 
 type ExportPlayback = {
@@ -1512,7 +1557,28 @@ const CONFETTI_DURATIONS: Partial<Record<CelebrationId, number>> = {
 
 const getExportDurationMs = (id: CelebrationId) => {
   const key = normalizeCelebrationKey(id);
+  if (CORE_WINK_KEYS.has(key)) {
+    return WINK_DURATION_MS;
+  }
   return Math.max(OVERLAY_DURATIONS[key as CelebrationId] ?? 0, CONFETTI_DURATIONS[key as CelebrationId] ?? 0) || 3000;
+};
+
+const finalizeWinkOverlayScene = (key: string, scene: OverlayScene): OverlayScene => {
+  if (!CORE_WINK_KEYS.has(key)) {
+    return scene;
+  }
+
+  const baseDuration = Math.max(
+    OVERLAY_DURATIONS[key as CelebrationId] ?? 0,
+    CONFETTI_DURATIONS[key as CelebrationId] ?? 0,
+    3000,
+  );
+
+  return {
+    ...scene,
+    durationMs: WINK_DURATION_MS,
+    timeScale: baseDuration / WINK_DURATION_MS,
+  };
 };
 
 const createOverlayScene = (id: CelebrationId): OverlayScene => {
@@ -1536,43 +1602,43 @@ const createOverlayScene = (id: CelebrationId): OverlayScene => {
     }));
 
   if (key === "celebration") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "falling",
       items: make(28, { colors: PARTY_COLORS, size: 7, duration: 3.1 }),
       flashes: [{ start: 0.08, duration: 0.22, variant: "neon" }],
-    };
+    });
   }
 
   if (key === "bingo") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "twinkle",
       items: make(10, { emojis: ["7", "8", "3", "9", "!"], size: 18, duration: 0 }),
       flashes: [{ start: 0.02, duration: 0.2, variant: "white" }, { start: 0.5, duration: 0.24, variant: "neon" }],
-    };
+    });
   }
 
   if (key === "flowers") {
-    return { mode: "rising", items: make(16, { colors: FLOWER_COLORS, size: 9, duration: 4.8 }), flashes: [] };
+    return finalizeWinkOverlayScene(key, { mode: "rising", items: make(16, { colors: FLOWER_COLORS, size: 9, duration: 4.8 }), flashes: [] });
   }
 
   if (key === "thumbs-up") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "twinkle",
       items: make(8, { emojis: ["+1", "OK"], size: 22, duration: 0 }),
       flashes: [{ start: 0.05, duration: 0.18, variant: "neon" }],
-    };
+    });
   }
 
   if (key === "leprechaun") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "rising",
       items: make(16, { colors: LUCKY_COLORS, size: 10, duration: 4.2 }),
       flashes: [{ start: 0.12, duration: 0.2, variant: "neon" }],
-    };
+    });
   }
 
   if (key === "countdown") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "none",
       items: [],
       flashes: [
@@ -1580,23 +1646,23 @@ const createOverlayScene = (id: CelebrationId): OverlayScene => {
         { start: 1.2, duration: 0.16, variant: "white" },
         { start: 2.2, duration: 0.24, variant: "white" },
       ],
-    };
+    });
   }
 
   if (key === "trivia-time") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "twinkle",
       items: make(10, { emojis: ["?"], size: 28, duration: 0 }),
       flashes: [{ start: 0.05, duration: 0.24, variant: "neon" }],
-    };
+    });
   }
 
   if (key === "happy-birthday") {
-    return {
+    return finalizeWinkOverlayScene(key, {
       mode: "rising",
       items: make(18, { colors: PARTY_COLORS, size: 8, duration: 4.6 }),
       flashes: [{ start: 0.06, duration: 0.18, variant: "white" }],
-    };
+    });
   }
 
   switch (key) {
@@ -1729,13 +1795,13 @@ const drawOverlayItem = (
   else drawOverlayParticle(ctx, item, x, y, alpha, scale, rotation);
 };
 
-const drawFlash = (ctx: CanvasRenderingContext2D, size: number, flash: OverlayFlash, seconds: number) => {
+const drawFlash = (ctx: CanvasRenderingContext2D, size: number, flash: OverlayFlash, seconds: number, alphaMultiplier = 1) => {
   const local = (seconds - flash.start) / flash.duration;
   if (local < 0 || local > 1) return;
 
   const alpha = local < 0.2 ? local / 0.2 : 1 - (local - 0.2) / 0.8;
   ctx.save();
-  ctx.globalAlpha = clamp01(alpha);
+  ctx.globalAlpha = clamp01(alpha) * alphaMultiplier;
   if (flash.variant === "white") {
     ctx.fillStyle = "#ffffff";
   } else {
@@ -1749,8 +1815,10 @@ const drawFlash = (ctx: CanvasRenderingContext2D, size: number, flash: OverlayFl
 };
 
 const drawOverlayScene = (ctx: CanvasRenderingContext2D, scene: OverlayScene, size: number, elapsedMs: number) => {
-  const seconds = elapsedMs / 1000;
-  scene.flashes.forEach((flash) => drawFlash(ctx, size, flash, seconds));
+  const seconds = (elapsedMs / 1000) * (scene.timeScale ?? 1);
+  const beat = scene.durationMs ? createWinkBeat(elapsedMs / scene.durationMs) : null;
+  const alphaMultiplier = beat?.visibleAlpha ?? 1;
+  scene.flashes.forEach((flash) => drawFlash(ctx, size, flash, seconds, alphaMultiplier));
 
   for (const item of scene.items) {
     const x0 = (item.left / 100) * size;
@@ -1760,7 +1828,7 @@ const drawOverlayScene = (ctx: CanvasRenderingContext2D, scene: OverlayScene, si
       if (delayed < 0) continue;
       const pulse = (1 - Math.cos((delayed / item.twinkleDuration) * TAU)) / 2;
       const scale = 1 + pulse * 0.4;
-      const alpha = 1 - pulse * 0.4;
+      const alpha = (1 - pulse * 0.4) * alphaMultiplier;
       drawOverlayItem(ctx, item, x0, (item.top / 100) * size, alpha, scale, Math.PI * pulse);
       continue;
     }
@@ -1771,7 +1839,7 @@ const drawOverlayScene = (ctx: CanvasRenderingContext2D, scene: OverlayScene, si
     const eased = clamp01(progress);
     const x = x0 + (item.drift / 320) * size * eased;
     const rotation = (item.rotation * Math.PI / 180) * eased;
-    const alpha = clamp01(1 - eased);
+    const alpha = clamp01(1 - eased) * alphaMultiplier;
     const y =
       scene.mode === "rising"
         ? size + item.size * 0.35 - eased * (size * 1.1 + item.size)

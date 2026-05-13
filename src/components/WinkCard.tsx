@@ -1,6 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Download, Heart, Play } from "lucide-react";
 
+import {
+  ApngPreviewSurface,
+  type ApngPreviewSurfaceHandle,
+} from "@/components/ApngPreviewSurface";
 import {
   LottiePreviewSurface,
   type LottiePreviewSurfaceHandle,
@@ -25,6 +29,7 @@ type WinkCardProps = {
   autoplayPreviewOnHover?: boolean;
   lottiePreviewUrl?: string;
   lottieStartAtProgress?: number;
+  lottiePlaybackSpeed?: number;
   onOpenPreview?: () => void;
   description?: string;
   eyebrow?: string;
@@ -48,9 +53,9 @@ export const WinkCard = ({
   preview,
   downloadUrl,
   hoverPreviewUrl,
-  autoplayPreviewOnHover,
   lottiePreviewUrl,
   lottieStartAtProgress,
+  lottiePlaybackSpeed,
   onOpenPreview,
   accentColor,
   className,
@@ -58,29 +63,22 @@ export const WinkCard = ({
   downloadLabel = "BAIXAR",
 }: WinkCardProps) => {
   const lottiePreviewRef = useRef<LottiePreviewSurfaceHandle | null>(null);
-  const [chatPreviewNonce, setChatPreviewNonce] = useState(0);
-  const [hasStartedCardPreview, setHasStartedCardPreview] = useState(false);
+  const apngPreviewRef = useRef<ApngPreviewSurfaceHandle | null>(null);
   const formatBadges = normalizeWinkFormats(format);
   const primaryBadge = formatBadges[0] ?? "APNG";
   const accent = accentColor ?? DEFAULT_ACCENTS[primaryBadge] ?? "#8f5bff";
   const isPortrait = resolution === "768x1024";
   const hasAnimatedChatPreview = Boolean(hoverPreviewUrl);
   const hasAnimatedPreview = Boolean(lottiePreviewUrl || hasAnimatedChatPreview);
-  const shouldShowAnimatedChatPreview = hasAnimatedChatPreview && (autoplayPreviewOnHover || hasStartedCardPreview);
-  const animatedChatSrc = hoverPreviewUrl
-    ? `${hoverPreviewUrl}${hoverPreviewUrl.includes("?") ? "&" : "?"}preview=${chatPreviewNonce}`
-    : undefined;
 
   const handleRestartPreview = () => {
-    setHasStartedCardPreview(true);
-
     if (lottiePreviewUrl) {
       lottiePreviewRef.current?.restart();
       return;
     }
 
     if (hasAnimatedChatPreview) {
-      setChatPreviewNonce((current) => current + 1);
+      apngPreviewRef.current?.restart();
     }
   };
 
@@ -126,20 +124,20 @@ export const WinkCard = ({
             alt={`${title} live preview`}
             className="absolute inset-0 h-full w-full wink-card-live-preview"
             startAtProgress={lottieStartAtProgress}
-            autoplay
+            playbackSpeed={lottiePlaybackSpeed}
+            autoplay={false}
             showFallbackUnderlay
           />
-        ) : shouldShowAnimatedChatPreview ? (
-          <img
-            key={animatedChatSrc}
-            src={animatedChatSrc}
-            alt={`${title} preview`}
-            className={cn(
-              "wink-card-live-preview wink-card-hover-overlay absolute inset-0 h-full w-full object-contain",
-              autoplayPreviewOnHover && "group-hover:scale-[1.02]",
-            )}
-            decoding="async"
-            loading="lazy"
+        ) : hasAnimatedChatPreview && hoverPreviewUrl ? (
+          <ApngPreviewSurface
+            ref={apngPreviewRef}
+            src={hoverPreviewUrl}
+            fallbackPreview={preview}
+            alt={`${title} live preview`}
+            className="absolute inset-0 h-full w-full"
+            mediaClassName="wink-card-live-preview wink-card-apng-preview"
+            fallbackClassName="wink-card-static-preview"
+            showFallbackUnderlay
           />
         ) : (
           <img

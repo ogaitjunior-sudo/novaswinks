@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WinkCard } from "@/components/WinkCard";
@@ -34,31 +34,39 @@ describe("WinkCard", () => {
     );
   });
 
-  it("renders the APNG animated preview immediately and lets PLAY restart it", () => {
-    render(
-      <WinkCard
-        title="Bingo Jackpot Explosion"
-        type="CHAT WINK"
-        format="APNG"
-        resolution="768x1024"
-        preview="/previews/chat/trh-chat-bingo-jackpot-explosion.png"
-        hoverPreviewUrl="/winks/chat/trh-chat-bingo-jackpot-explosion.apng"
-        autoplayPreviewOnHover
-        downloadUrl="/winks/chat/trh-chat-bingo-jackpot-explosion.apng"
-      />,
-    );
+  it("renders the APNG as a live preview immediately and lets PLAY restart it", () => {
+    vi.useFakeTimers();
 
-    expect(screen.getByAltText("Bingo Jackpot Explosion preview")).toHaveAttribute(
-      "src",
-      "/winks/chat/trh-chat-bingo-jackpot-explosion.apng?preview=0",
-    );
-    expect(screen.queryByAltText("Bingo Jackpot Explosion preview snapshot")).not.toBeInTheDocument();
+    try {
+      render(
+        <WinkCard
+          title="Big Heart Formation"
+          type="CHAT WINK"
+          format="APNG"
+          resolution="768x1024"
+          preview="/previews/chat/trh-chat-big-heart-formation.png"
+          hoverPreviewUrl="/winks/chat/trh-chat-big-heart-formation.apng"
+          autoplayPreviewOnHover
+          downloadUrl="/winks/chat/trh-chat-big-heart-formation.apng"
+        />,
+      );
 
-    fireEvent.click(screen.getByRole("button", { name: "Play preview for Bingo Jackpot Explosion" }));
+      expect(screen.queryByAltText("Big Heart Formation preview snapshot")).not.toBeInTheDocument();
+      const firstRun = screen.getByAltText("Big Heart Formation live preview");
+      expect(firstRun).toHaveAttribute("src", "/winks/chat/trh-chat-big-heart-formation.apng?preview=0");
 
-    expect(screen.getByAltText("Bingo Jackpot Explosion preview")).toHaveAttribute(
-      "src",
-      "/winks/chat/trh-chat-bingo-jackpot-explosion.apng?preview=1",
-    );
+      fireEvent.load(firstRun);
+      act(() => {
+        vi.advanceTimersByTime(8100);
+      });
+      expect(screen.queryByAltText("Big Heart Formation live preview")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Play preview for Big Heart Formation" }));
+
+      const restartedRun = screen.getByAltText("Big Heart Formation live preview");
+      expect(restartedRun).toHaveAttribute("src", "/winks/chat/trh-chat-big-heart-formation.apng?preview=1");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

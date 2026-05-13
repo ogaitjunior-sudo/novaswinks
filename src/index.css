@@ -456,6 +456,8 @@
   .wink-card-media {
     border-bottom: 1px solid rgba(96, 111, 208, 0.18);
     background: #060914;
+    contain: layout paint;
+    transform: translateZ(0);
   }
 
   .wink-alpha-stage,
@@ -487,10 +489,19 @@
   .wink-card-static-preview,
   .wink-preview-static,
   .wink-card-live-preview {
+    --wink-preview-scale: 1;
+    --wink-preview-shift-y: 0px;
+    transform-origin: center;
     pointer-events: none;
     filter:
       drop-shadow(0 10px 24px rgba(0, 0, 0, 0.3))
       drop-shadow(0 0 18px color-mix(in srgb, var(--wink-accent) 10%, transparent));
+  }
+
+  .wink-card-static-preview,
+  .wink-preview-static {
+    transform: scale(var(--wink-preview-scale, 1)) translate3d(0, var(--wink-preview-shift-y, 0px), 0);
+    will-change: transform, filter;
   }
 
   .wink-card-live-preview {
@@ -499,6 +510,15 @@
     transform-origin: center;
     animation: previewBreath 4.8s ease-in-out infinite;
     will-change: transform, filter;
+  }
+
+  .wink-card-apng-preview {
+    animation: none;
+    transform: scale(var(--wink-preview-scale, 1)) translate3d(0, var(--wink-preview-shift-y, 0px), 0);
+    backface-visibility: hidden;
+    contain: paint;
+    image-rendering: auto;
+    will-change: opacity;
   }
 
   .wink-card-live-halo {
@@ -518,6 +538,15 @@
     inset: 0;
     background:
       linear-gradient(180deg, rgba(3, 5, 11, 0.01) 0%, rgba(3, 5, 11, 0.05) 36%, rgba(4, 7, 18, 0.78) 100%);
+    pointer-events: none;
+  }
+
+  .wink-preview-loading-layer {
+    background:
+      radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--wink-accent) 12%, transparent) 0%, transparent 24%),
+      radial-gradient(circle at 50% 64%, rgba(255, 255, 255, 0.05) 0%, transparent 18%),
+      linear-gradient(180deg, rgba(7, 10, 22, 0.12), rgba(7, 10, 22, 0.36));
+    animation: liveHaloPulse 2.4s ease-in-out infinite;
     pointer-events: none;
   }
 
@@ -605,10 +634,19 @@
   .wink-card-download-button,
   .wink-card-preview-button {
     width: 100%;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-family: "Rajdhani", "Manrope", "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1;
     text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .wink-card-download-button *,
+  .wink-card-preview-button * {
+    font-family: inherit;
+    font-weight: inherit;
   }
 
   .wink-card-download-button {
@@ -638,10 +676,16 @@
     background: linear-gradient(90deg, rgba(113, 63, 255, 0.96), rgba(66, 94, 221, 0.92));
     color: white;
     font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-family: "Rajdhani", "Manrope", "Segoe UI", sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     box-shadow: 0 0 30px rgba(111, 79, 255, 0.18);
+  }
+
+  .studio-primary-button * {
+    font-family: inherit;
+    font-weight: inherit;
   }
 
   .studio-primary-button:hover {
@@ -666,10 +710,27 @@
     display: block;
   }
 
+  .chat-wink-card .wink-card-static-preview,
   .chat-wink-card .wink-card-live-preview {
-    animation-duration: 4.2s;
+    --wink-preview-scale: 1.08;
+    --wink-preview-shift-y: 0px;
+    filter:
+      saturate(1.12)
+      contrast(1.08)
+      brightness(1.08)
+      drop-shadow(0 12px 26px rgba(0, 0, 0, 0.28))
+      drop-shadow(0 0 24px color-mix(in srgb, var(--wink-accent) 14%, transparent));
   }
 
+  .chat-wink-card {
+    contain: layout paint;
+  }
+
+  .chat-wink-card:hover {
+    transform: none;
+  }
+
+  .fullscreen-wink-card .wink-card-static-preview,
   .fullscreen-wink-card .wink-card-live-preview {
     --wink-preview-scale: 1.085;
     --wink-preview-shift-y: -8px;
@@ -680,6 +741,20 @@
       brightness(1.04)
       drop-shadow(0 14px 28px rgba(0, 0, 0, 0.34))
       drop-shadow(0 0 24px color-mix(in srgb, var(--wink-accent) 14%, transparent));
+  }
+
+  #trh-full-classic-countdown-bingo .wink-card-static-preview,
+  #trh-full-classic-countdown-bingo .wink-card-live-preview,
+  #trh-full-bingo-letter-build .wink-card-static-preview,
+  #trh-full-bingo-letter-build .wink-card-live-preview,
+  #trh-full-gold-jackpot-countdown .wink-card-static-preview,
+  #trh-full-gold-jackpot-countdown .wink-card-live-preview,
+  #trh-full-final-countdown-detonation .wink-card-static-preview,
+  #trh-full-final-countdown-detonation .wink-card-live-preview,
+  #trh-full-mega-bingo-impact .wink-card-static-preview,
+  #trh-full-mega-bingo-impact .wink-card-live-preview {
+    --wink-preview-scale: 0.94;
+    --wink-preview-shift-y: -24px;
   }
 
   #trh-full-celebration-finale .wink-card-live-preview {
