@@ -8,7 +8,7 @@ describe("Index page", () => {
   it("renders the active chat and fullscreen wink lanes", () => {
     render(<Index />);
 
-    expect(screen.getAllByText("GABRIEL").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gabriel e Oscar").length).toBeGreaterThan(0);
     expect(screen.getAllByText("CHAT WINKS").length).toBeGreaterThan(0);
     expect(screen.getAllByText("FULL BINGO WINKS").length).toBeGreaterThan(0);
 

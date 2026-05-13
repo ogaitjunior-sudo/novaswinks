@@ -13,6 +13,7 @@ import {
   Settings2,
   Star,
   UserRound,
+  Volume2,
 } from "lucide-react";
 
 import { WinkCard } from "@/components/WinkCard";
@@ -49,14 +50,15 @@ const withCacheVersion = (url: string, cacheVersion?: string) => {
 };
 
 const sidebarItems = [
-  { label: "WINK STUDIO", icon: Star, active: true },
-  { label: "CHAT WINKS", icon: MessageSquare },
-  { label: "FULL BINGO WINKS", icon: Monitor },
-  { label: "FAVORITES", icon: Heart },
-  { label: "DOWNLOADS", icon: Download },
-  { label: "CATEGORIES", icon: LayoutGrid },
-  { label: "SETTINGS", icon: Settings2 },
-  { label: "HELP", icon: LifeBuoy },
+  { label: "WINK STUDIO", icon: Star, href: "#" },
+  { label: "CHAT WINKS", icon: MessageSquare, href: "#chat-winks" },
+  { label: "FULL BINGO WINKS", icon: Monitor, href: "#fullscreen-winks" },
+  { label: "SOUND", icon: Volume2, href: "#fullscreen-winks", fullscreenCategory: "Stars Sound Experience" as const },
+  { label: "FAVORITES", icon: Heart, href: "#" },
+  { label: "DOWNLOADS", icon: Download, href: "#" },
+  { label: "CATEGORIES", icon: LayoutGrid, href: "#" },
+  { label: "SETTINGS", icon: Settings2, href: "#" },
+  { label: "HELP", icon: LifeBuoy, href: "#" },
 ];
 
 const laneCards = [
@@ -128,16 +130,27 @@ const Index = () => {
       <div className="studio-app-shell relative z-10 mx-auto grid min-h-screen max-w-[1720px] lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="studio-sidebar">
           <div className="studio-sidebar-brand">
-            <h1 className="studio-brand-title">GABRIEL</h1>
+            <h1 className="studio-brand-title">Gabriel e Oscar</h1>
             <p className="studio-brand-subtitle">WINK STUDIO</p>
           </div>
 
           <nav className="studio-sidebar-nav">
-            {sidebarItems.map(({ label, icon: Icon, active }) => (
+            {sidebarItems.map(({ label, icon: Icon, href, fullscreenCategory }) => (
               <a
                 key={label}
-                href={label === "CHAT WINKS" ? "#chat-winks" : label === "FULL BINGO WINKS" ? "#fullscreen-winks" : "#"}
-                className={`studio-sidebar-link ${active ? "is-active" : ""}`}
+                href={href}
+                className={`studio-sidebar-link ${
+                  (label === "WINK STUDIO" && selectedFullscreenCategory === "all") || selectedFullscreenCategory === fullscreenCategory ? "is-active" : ""
+                }`}
+                onClick={(event) => {
+                  if (!fullscreenCategory) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  setSelectedFullscreenCategory(fullscreenCategory);
+                  document.querySelector("#fullscreen-winks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
@@ -149,7 +162,7 @@ const Index = () => {
             <div className="studio-sidebar-promo-icon">
               <Crown className="h-8 w-8" />
             </div>
-            <p className="studio-sidebar-promo-title">GABRIEL</p>
+            <p className="studio-sidebar-promo-title">Gabriel e Oscar</p>
             <p className="studio-sidebar-promo-copy">PREMIUM PLATFORM</p>
           </div>
         </aside>
@@ -157,7 +170,7 @@ const Index = () => {
         <div className="studio-main-area">
           <header className="studio-topbar">
             <div className="studio-mobile-brand">
-              <p className="studio-brand-title">GABRIEL</p>
+              <p className="studio-brand-title">Gabriel e Oscar</p>
               <p className="studio-brand-subtitle">WINK STUDIO</p>
             </div>
 
@@ -383,7 +396,7 @@ const Index = () => {
             </section>
 
             <footer className="studio-footer">
-              <span>GABRIEL WINK STUDIO</span>
+              <span>Gabriel e Oscar Wink Studio</span>
               <span>PREMIUM EFFECTS FOR PREMIUM PLAYERS</span>
             </footer>
           </div>

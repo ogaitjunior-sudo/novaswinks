@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Folder, Gauge, Play } from "lucide-react";
 
 import { ApngPreviewSurface } from "@/components/ApngPreviewSurface";
@@ -33,10 +33,67 @@ const withCacheVersion = (url: string, cacheVersion?: string) => {
 export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, onOpenChange }: WinkPreviewDialogProps) => {
   const defaultFullscreenPlaybackSpeed = 1.35;
   const [fullscreenPlaybackSpeed, setFullscreenPlaybackSpeed] = useState(defaultFullscreenPlaybackSpeed);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setFullscreenPlaybackSpeed(defaultFullscreenPlaybackSpeed);
   }, [asset?.id, defaultFullscreenPlaybackSpeed]);
+
+  useEffect(() => {
+    const audioSource = asset?.audioPath ? withCacheVersion(asset.audioPath, cacheVersion) : null;
+
+    if (!audioSource || typeof Audio === "undefined") {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      return;
+    }
+
+    const speed = Math.max(fullscreenPlaybackSpeed, 0.1);
+    const audio = new Audio(audioSource);
+    let fadeFrame = 0;
+    audioRef.current = audio;
+    audio.volume = 0.72;
+    audio.currentTime = 0;
+    audio.playbackRate = speed;
+
+    const fadeTimer = window.setTimeout(() => {
+      const fadeStart = performance.now();
+      const startVolume = audio.volume;
+      const fade = (now: number) => {
+        const progress = Math.min(1, (now - fadeStart) / 1400);
+        audio.volume = startVolume * (1 - progress);
+
+        if (progress < 1 && !audio.paused) {
+          fadeFrame = window.requestAnimationFrame(fade);
+        }
+      };
+
+      fadeFrame = window.requestAnimationFrame(fade);
+    }, 6000 / speed);
+
+    const stopTimer = window.setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, 8200 / speed);
+
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      void playPromise.catch(() => undefined);
+    }
+
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(stopTimer);
+      if (fadeFrame) {
+        window.cancelAnimationFrame(fadeFrame);
+      }
+      audio.pause();
+      audio.currentTime = 0;
+      if (audioRef.current === audio) {
+        audioRef.current = null;
+      }
+    };
+  }, [asset?.audioPath, asset?.id, cacheVersion, fullscreenPlaybackSpeed, previewSessionId]);
 
   if (!asset) {
     return null;
@@ -96,6 +153,14 @@ export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, o
                 >
                   {asset.resolution}
                 </Badge>
+                {asset.audioPath ? (
+                  <Badge
+                    variant="outline"
+                    className="border-[#fff1b4]/30 bg-[#fff1b4]/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-[#fff1b4]"
+                  >
+                    Sound
+                  </Badge>
+                ) : null}
               </div>
               <DialogTitle className="max-w-3xl text-4xl font-semibold uppercase tracking-[0.08em] text-white md:text-5xl">
                 {asset.name}

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const WIDTH = 768;
 const HEIGHT = 1024;
-const FRAME_COUNT = 72;
+const FRAME_COUNT = 54;
 const FRAME_DELAY_MS = 58;
 const FRAME_START_OFFSET = 0.02;
 const TAU = Math.PI * 2;
@@ -6826,7 +6826,7 @@ const masterChatPackEffects = [
   ["trh-chat-twinkle-formation.apng", renderChatSimpleStar],
   ["trh-chat-golden-star-finale.apng", renderChatSimpleStar],
   ["trh-chat-firework-launch.apng", renderMessengerStarlightRocketPop],
-  ["trh-chat-firework-burst.apng", renderMessengerFireworkImpact],
+  ["trh-chat-firework-burst.apng", renderChatSimpleFirework],
   ["trh-chat-jackpot-fireworks.apng", renderChatSimpleFirework],
   ["trh-chat-neon-firework-sky.apng", renderChatSimpleFirework],
   ["trh-chat-grand-finale-fireworks.apng", renderChatFireworkHero],

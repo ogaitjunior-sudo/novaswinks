@@ -128,4 +128,18 @@ describe("wink assets", () => {
       expect(alphaSummary.visible).toBeGreaterThan(0);
     }
   }, 25000);
+
+  it("ships separate mp3 files for the stars sound experience", async () => {
+    const soundAssets = fullscreenWinks.filter((asset) => asset.fullscreenCategory === "Stars Sound Experience");
+    expect(soundAssets).toHaveLength(5);
+
+    for (const asset of soundAssets) {
+      expect(asset.audioPath).toBeTruthy();
+      const buffer = await readFile(path.join(workspaceRoot, "public", asset.audioPath!.replace(/^\//, "")));
+      const hasId3Header = buffer.subarray(0, 3).toString("ascii") === "ID3";
+      const hasMp3FrameHeader = buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+      expect(buffer.byteLength).toBeGreaterThan(1000);
+      expect(hasId3Header || hasMp3FrameHeader).toBe(true);
+    }
+  });
   }, 180000);
