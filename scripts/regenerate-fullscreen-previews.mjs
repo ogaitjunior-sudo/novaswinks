@@ -349,7 +349,11 @@ const drawBingoBall = (buffer, cx, cy, radius, bodyColor, digit, alpha = 1) => {
   drawCircle(buffer, cx - (radius * 0.22), cy - (radius * 0.24), radius * 0.18, hexToRgb("#ffffff"), alpha * 0.22);
   drawCircle(buffer, cx, cy, radius * 0.44, hexToRgb("#ffffff"), alpha * 0.94);
   drawRing(buffer, cx, cy, radius * 0.44, Math.max(2, radius * 0.06), bodyColor, alpha * 0.6);
-  drawDigit(buffer, cx, cy, radius * 0.92, digit, hexToRgb("#151515"), alpha * 0.92);
+  if (/^[A-Z]$/i.test(String(digit))) {
+    drawBingoLetter(buffer, cx, cy, radius, String(digit).toUpperCase(), alpha);
+  } else {
+    drawDigit(buffer, cx, cy, radius * 0.92, digit, hexToRgb("#151515"), alpha * 0.92);
+  }
   drawCircle(buffer, cx + (radius * 0.14), cy + (radius * 0.18), radius * 0.08, hexToRgb("#fffef6"), alpha * 0.16);
 };
 
@@ -364,19 +368,44 @@ const drawBingoPlainBall = (buffer, cx, cy, radius, bodyColor, alpha = 1) => {
 };
 
 const LETTER_STROKES = {
-  B: [[[0.3, -0.5], [0.3, 0.5]], [[0.3, -0.5], [0.0, -0.5], [-0.16, -0.34], [0.0, -0.16], [0.3, -0.16]], [[0.3, -0.16], [0.0, -0.16], [-0.18, 0.02], [0.0, 0.22], [0.3, 0.22]], [[0.3, 0.22], [0.3, 0.5]]],
+  B: [[[-0.34, -0.5], [-0.34, 0.5]], [[-0.34, -0.5], [0.08, -0.5], [0.3, -0.32], [0.08, -0.12], [-0.34, -0.12]], [[-0.34, -0.12], [0.12, -0.12], [0.34, 0.08], [0.12, 0.5], [-0.34, 0.5]]],
   I: [[[0, -0.5], [0, 0.5]], [[-0.24, -0.5], [0.24, -0.5]], [[-0.24, 0.5], [0.24, 0.5]]],
   N: [[[-0.28, 0.5], [-0.28, -0.5]], [[-0.28, -0.5], [0.28, 0.5]], [[0.28, 0.5], [0.28, -0.5]]],
   G: [[[0.28, -0.36], [0.04, -0.5], [-0.28, -0.36], [-0.34, 0.16], [-0.1, 0.5], [0.28, 0.38]], [[0.28, 0.38], [0.28, 0.1], [0.02, 0.1]]],
   O: [[[0, -0.5], [0.28, -0.36], [0.34, 0], [0.28, 0.36], [0, 0.5], [-0.28, 0.36], [-0.34, 0], [-0.28, -0.36], [0, -0.5]]],
 };
 
+const BINGO_PREVIEW_FONT = {
+  B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
+  N: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+  G: ["01111", "10000", "10000", "10111", "10001", "10001", "01111"],
+  O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+};
+
 const drawBingoLetter = (buffer, cx, cy, radius, letter, alpha = 1) => {
-  const strokes = LETTER_STROKES[letter] ?? LETTER_STROKES.O;
-  const size = radius * 0.64;
-  for (const stroke of strokes) {
-    const points = stroke.map(([x, y]) => [cx + (x * size), cy + (y * size)]);
-    drawPolyline(buffer, points, Math.max(2.8, radius * 0.055), hexToRgb("#151515"), alpha * 0.9);
+  const glyph = BINGO_PREVIEW_FONT[String(letter).toUpperCase()] ?? BINGO_PREVIEW_FONT.O;
+  const columns = glyph[0].length;
+  const cell = radius * 0.128;
+  const width = columns * cell;
+  const height = glyph.length * cell;
+  const originX = cx - (width * 0.5);
+  const originY = cy - (height * 0.5);
+  for (let row = 0; row < glyph.length; row += 1) {
+    for (let col = 0; col < glyph[row].length; col += 1) {
+      if (glyph[row][col] !== "1") continue;
+      drawRotatedRect(
+        buffer,
+        originX + (col * cell) + (cell * 0.5),
+        originY + (row * cell) + (cell * 0.5),
+        cell * 1.06,
+        cell * 1.06,
+        0,
+        hexToRgb("#151515"),
+        alpha * 0.94,
+        cell * 0.08,
+      );
+    }
   }
 };
 

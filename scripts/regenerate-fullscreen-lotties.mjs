@@ -335,7 +335,7 @@ const digitGroups = (digit, size, color) => {
   });
 };
 
-const bingoBallGroup = (name, radius, bodyColor, digit) =>
+const bingoBallGroup = (name, radius, bodyColor, digit = null) =>
   group(name, [
     group("Ball Glow", [
       ellipseShape("Ball Glow Path", radius * 2.28, radius * 2.28),
@@ -368,7 +368,7 @@ const bingoBallGroup = (name, radius, bodyColor, digit) =>
       pathShape("Spec Arc Path", [[-(radius * 0.42), -(radius * 0.08)], [radius * 0.04, -(radius * 0.34)], [radius * 0.42, -(radius * 0.12)]], false),
       strokeNode("Spec Arc Stroke", rgb("#ffffff"), Math.max(2, radius * 0.06), 28),
     ]),
-    ...digitGroups(digit, radius * 0.94, rgb("#171717")),
+    ...(digit === null ? [] : digitGroups(digit, radius * 0.94, rgb("#171717"))),
   ]);
 
 const bingoLetterBallGroup = (name, radius, accentColor) =>
@@ -404,7 +404,7 @@ const bingoLetterBallGroup = (name, radius, accentColor) =>
   ]);
 
 const BINGO_LETTER_STROKES = {
-  B: [[[0.3, -0.5], [0.3, 0.5]], [[0.3, -0.5], [0.0, -0.5], [-0.16, -0.34], [0.0, -0.16], [0.3, -0.16]], [[0.3, -0.16], [0.0, -0.16], [-0.18, 0.02], [0.0, 0.22], [0.3, 0.22]], [[0.3, 0.22], [0.3, 0.5]]],
+  B: [[[-0.34, -0.5], [-0.34, 0.5]], [[-0.34, -0.5], [0.08, -0.5], [0.3, -0.32], [0.08, -0.12], [-0.34, -0.12]], [[-0.34, -0.12], [0.12, -0.12], [0.34, 0.08], [0.12, 0.5], [-0.34, 0.5]]],
   I: [[[0, -0.5], [0, 0.5]], [[-0.24, -0.5], [0.24, -0.5]], [[-0.24, 0.5], [0.24, 0.5]]],
   N: [[[-0.28, 0.5], [-0.28, -0.5]], [[-0.28, -0.5], [0.28, 0.5]], [[0.28, 0.5], [0.28, -0.5]]],
   G: [[[0.28, -0.36], [0.04, -0.5], [-0.28, -0.36], [-0.34, 0.16], [-0.1, 0.5], [0.28, 0.38]], [[0.28, 0.38], [0.28, 0.1], [0.02, 0.1]]],
@@ -445,7 +445,6 @@ const coloredBingoLetterBallGroup = (name, radius, bodyColor, letter) =>
       fillNode("Colored Ball Inner Disc Fill", rgb("#fffdf5"), 96),
       strokeNode("Colored Ball Inner Disc Stroke", bodyColor, Math.max(3, radius * 0.07), 64),
     ]),
-    bingoLetterMarkGroup("Colored Ball Letter", radius, letter, rgb("#151515")),
     group("Colored Ball Shine", [
       ellipseShape("Colored Ball Shine Path", radius * 0.44, radius * 0.26),
       fillNode("Colored Ball Shine Fill", rgb("#ffffff"), 28),
@@ -928,6 +927,9 @@ const buildTextLayer = ({
   rotationFrames,
   inFrame = 0,
   outFrame = DURATION_FRAMES,
+  textBoxYOffset = -0.66,
+  textBoxHeight = 1.3,
+  tracking = -10,
 }) => ({
   ddd: 0,
   ind: index,
@@ -947,13 +949,13 @@ const buildTextLayer = ({
       k: [
         {
           s: {
-            sz: [WIDTH, fontSize * 1.3],
-            ps: [-WIDTH / 2, -(fontSize * 0.66)],
+            sz: [WIDTH, fontSize * textBoxHeight],
+            ps: [-WIDTH / 2, fontSize * textBoxYOffset],
             s: fontSize,
             f: "Arial-BoldMT",
             t: text,
             j: 2,
-            tr: -10,
+            tr: tracking,
             lh: fontSize * 1.08,
             fc: fillColor.slice(0, 3),
             sc: strokeColor.slice(0, 3),
@@ -3842,6 +3844,39 @@ const buildBingoBallsGlowLayer = (index, name, color = rgb("#f5c65b"), center = 
     ],
   });
 
+const bingoBallLabelDiscLayer = ({
+  index,
+  name,
+  radius,
+  accentColor,
+  positionFrames,
+  scaleFrames,
+  opacityFrames,
+  inFrame,
+  outFrame,
+}) => buildLayer({
+  index,
+  name,
+  shapes: [
+    group("Bingo Ball Label Disc Shadow", [
+      ellipseShape("Label Disc Shadow Path", radius * 1.02, radius * 1.02),
+      fillNode("Label Disc Shadow Fill", rgb("#000000"), 22),
+    ], {
+      position: [radius * 0.03, radius * 0.05],
+    }),
+    group("Bingo Ball White Label Disc", [
+      ellipseShape("White Label Disc Path", radius * 1.02, radius * 1.02),
+      fillNode("White Label Disc Fill", rgb("#ffffff"), 100),
+      strokeNode("White Label Disc Rim", accentColor, Math.max(3.5, radius * 0.075), 72),
+    ]),
+  ],
+  positionFrames,
+  scaleFrames,
+  opacityFrames,
+  inFrame,
+  outFrame,
+});
+
 const buildBingoBallMotionLayers = (startIndex, configs) => {
   const layers = [];
   for (const [index, config] of configs.entries()) {
@@ -3850,29 +3885,63 @@ const buildBingoBallMotionLayers = (startIndex, configs) => {
     const holdFrame = config.holdFrame ?? 112;
     const endFrame = config.endFrame ?? 179;
     const ball = config.ball ?? fullscreenBingoBallPalette[index % fullscreenBingoBallPalette.length];
+    const positionFrames = [
+      { t: startFrame, s: [config.from[0], config.from[1], 0] },
+      { t: impactFrame, s: [config.mid[0], config.mid[1], 0] },
+      { t: holdFrame, s: [config.hold[0], config.hold[1], 0] },
+      { t: endFrame, s: [config.to[0], config.to[1], 0] },
+    ];
+    const scaleFrames = [
+      { t: startFrame, s: [42, 42, 100] },
+      { t: clampFrame(impactFrame + 8), s: [132, 132, 100] },
+      { t: holdFrame, s: [104, 104, 100] },
+      { t: endFrame, s: [82, 82, 100] },
+    ];
+    const opacityFrames = [
+      { t: 0, s: [0] },
+      { t: startFrame, s: [0] },
+      { t: clampFrame(startFrame + 8), s: [100] },
+      { t: clampFrame(endFrame - 18), s: [88] },
+      { t: endFrame, s: [0] },
+    ];
+    layers.push(buildTextLayer({
+      index: startIndex + layers.length,
+      name: `Fullscreen Bingo Ball Label ${index + 1}`,
+      text: String(ball.digit),
+      fontSize: config.radius * 0.78,
+      fillColor: rgb("#151515"),
+      strokeColor: rgb("#151515"),
+      strokeWidth: 0,
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      inFrame: startFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+      textBoxYOffset: -0.5,
+      textBoxHeight: 1.12,
+      tracking: 0,
+    }));
+    layers.push(bingoBallLabelDiscLayer({
+      index: startIndex + layers.length,
+      name: `Fullscreen Bingo Ball Label Disc ${index + 1}`,
+      radius: config.radius,
+      accentColor: ball.color,
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      inFrame: startFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+      textBoxYOffset: -0.5,
+      textBoxHeight: 1.12,
+      tracking: 0,
+    }));
     layers.push(buildLayer({
       index: startIndex + layers.length,
       name: `Fullscreen Bingo Ball ${index + 1}`,
-      shapes: [bingoBallGroup("Fullscreen Bingo Ball Shape", config.radius, ball.color, ball.digit)],
-      positionFrames: [
-        { t: startFrame, s: [config.from[0], config.from[1], 0] },
-        { t: impactFrame, s: [config.mid[0], config.mid[1], 0] },
-        { t: holdFrame, s: [config.hold[0], config.hold[1], 0] },
-        { t: endFrame, s: [config.to[0], config.to[1], 0] },
-      ],
-      scaleFrames: [
-        { t: startFrame, s: [42, 42, 100] },
-        { t: clampFrame(impactFrame + 8), s: [132, 132, 100] },
-        { t: holdFrame, s: [104, 104, 100] },
-        { t: endFrame, s: [82, 82, 100] },
-      ],
-      opacityFrames: [
-        { t: 0, s: [0] },
-        { t: startFrame, s: [0] },
-        { t: clampFrame(startFrame + 8), s: [100] },
-        { t: clampFrame(endFrame - 18), s: [88] },
-        { t: endFrame, s: [0] },
-      ],
+      shapes: [bingoBallGroup("Fullscreen Bingo Ball Shape", config.radius, ball.color)],
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
       rotationFrames: [
         { t: startFrame, s: [config.rotationStart ?? 0] },
         { t: impactFrame, s: [config.rotationMid ?? 120] },
@@ -3913,17 +3982,6 @@ const buildBingoLetterBallLayers = (startIndex, configs) => {
       { t: endFrame, s: [config.to[0], config.to[1], 0] },
     ];
 
-    layers.push(buildLayer({
-      index: startIndex + layers.length,
-      name: `BINGO Letter Ball ${config.letter}`,
-      shapes: [bingoBallGroup("BINGO Letter Ball Shape", config.radius, ball.color, ball.digit)],
-      positionFrames,
-      scaleFrames,
-      opacityFrames,
-      rotationFrames: [{ t: startFrame, s: [config.rotationStart ?? -40] }, { t: impactFrame, s: [0] }, { t: endFrame, s: [config.rotationEnd ?? 160] }],
-      inFrame: startFrame,
-      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
-    }));
     layers.push(buildTextLayer({
       index: startIndex + layers.length,
       name: `BINGO Letter ${config.letter}`,
@@ -3935,6 +3993,28 @@ const buildBingoLetterBallLayers = (startIndex, configs) => {
       positionFrames,
       scaleFrames,
       opacityFrames,
+      inFrame: startFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+    }));
+    layers.push(bingoBallLabelDiscLayer({
+      index: startIndex + layers.length,
+      name: `BINGO Letter Disc ${config.letter}`,
+      radius: config.radius,
+      accentColor: ball.color,
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      inFrame: startFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+    }));
+    layers.push(buildLayer({
+      index: startIndex + layers.length,
+      name: `BINGO Letter Ball ${config.letter}`,
+      shapes: [bingoBallGroup("BINGO Letter Ball Shape", config.radius, ball.color)],
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      rotationFrames: [{ t: startFrame, s: [config.rotationStart ?? -40] }, { t: impactFrame, s: [0] }, { t: endFrame, s: [config.rotationEnd ?? 160] }],
       inFrame: startFrame,
       outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
     }));
@@ -4066,6 +4146,36 @@ const buildBingoBallFormationWink = () => {
       { t: 79, s: [118, 118, 100] },
       { t: 86, s: [18, 18, 100] },
     ];
+    layers.push(buildTextLayer({
+      index: nextIndex,
+      name: `BINGO Bounce Letter ${config.letter}`,
+      text: config.letter,
+      fontSize: 96,
+      fillColor: rgb("#141414"),
+      strokeColor: config.accent,
+      strokeWidth: 2,
+      positionFrames,
+      scaleFrames,
+      opacityFrames: ballOpacity,
+      inFrame: 0,
+      outFrame: 88,
+      textBoxYOffset: -0.5,
+      textBoxHeight: 1.12,
+      tracking: 0,
+    }));
+    nextIndex += 1;
+    layers.push(bingoBallLabelDiscLayer({
+      index: nextIndex,
+      name: `BINGO Bounce Letter Disc ${config.letter}`,
+      radius: 96,
+      accentColor: config.accent,
+      positionFrames,
+      scaleFrames,
+      opacityFrames: ballOpacity,
+      inFrame: 0,
+      outFrame: 88,
+    }));
+    nextIndex += 1;
     layers.push(buildLayer({
       index: nextIndex,
       name: `BINGO Bounce Ball ${config.letter}`,
@@ -4079,21 +4189,6 @@ const buildBingoBallFormationWink = () => {
         { t: 79, s: [0] },
         { t: 86, s: [90 * (index - 2)] },
       ],
-      inFrame: 0,
-      outFrame: 88,
-    }));
-    nextIndex += 1;
-    layers.push(buildTextLayer({
-      index: nextIndex,
-      name: `BINGO Bounce Letter ${config.letter}`,
-      text: config.letter,
-      fontSize: 96,
-      fillColor: rgb("#141414"),
-      strokeColor: config.accent,
-      strokeWidth: 2,
-      positionFrames,
-      scaleFrames,
-      opacityFrames: ballOpacity,
       inFrame: 0,
       outFrame: 88,
     }));
@@ -4281,12 +4376,27 @@ const buildImportedBingoAnimation = (variant = "classic") => {
 
     layers.push(buildTextLayer({
       index: nextIndex,
-      name: `Imported Bingo Letter ${ball.letter}`,
+      name: `Imported Bingo Letter ${ball.letter} Arial`,
       text: ball.letter,
-      fontSize: 88,
+      fontSize: 92,
       fillColor: rgb("#151515"),
       strokeColor: rgb("#ffffff"),
       strokeWidth: 2,
+      positionFrames,
+      scaleFrames,
+      opacityFrames,
+      inFrame: 0,
+      outFrame: DURATION_FRAMES,
+      textBoxYOffset: -0.5,
+      textBoxHeight: 1.12,
+      tracking: 0,
+    }));
+    nextIndex += 1;
+    layers.push(bingoBallLabelDiscLayer({
+      index: nextIndex,
+      name: `Imported Bingo Letter Disc ${ball.letter}`,
+      radius: 84,
+      accentColor: ball.color,
       positionFrames,
       scaleFrames,
       opacityFrames,

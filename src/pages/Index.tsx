@@ -40,6 +40,7 @@ const floatingParticles = [
 ];
 
 const getFullscreenPreviewSpeed = (_asset: WinkAsset) => 1.35;
+const initialAssetCacheVersion = "bingo-white-letter-disc-20260514";
 
 const withCacheVersion = (url: string, cacheVersion?: string) => {
   if (!cacheVersion) {
@@ -90,7 +91,7 @@ const Index = () => {
   const [previewSessionId, setPreviewSessionId] = useState(0);
   const [selectedChatCategory, setSelectedChatCategory] = useState<ChatWinkCategory | "all">("all");
   const [selectedFullscreenCategory, setSelectedFullscreenCategory] = useState<FullscreenWinkCategory | "all" | "sound">("all");
-  const [assetCacheVersion, setAssetCacheVersion] = useState("");
+  const [assetCacheVersion, setAssetCacheVersion] = useState(initialAssetCacheVersion);
   const [cacheStatus, setCacheStatus] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") {

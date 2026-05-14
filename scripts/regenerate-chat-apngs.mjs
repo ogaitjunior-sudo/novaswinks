@@ -436,6 +436,45 @@ const drawDigit = (buffer, cx, cy, size, digit, color, alpha = 1) => {
   }
 };
 
+const BINGO_BALL_LETTER_STROKES = {
+  B: [[[-0.34, -0.5], [-0.34, 0.5]], [[-0.34, -0.5], [0.08, -0.5], [0.3, -0.32], [0.08, -0.12], [-0.34, -0.12]], [[-0.34, -0.12], [0.12, -0.12], [0.34, 0.08], [0.12, 0.5], [-0.34, 0.5]]],
+  I: [[[0, -0.5], [0, 0.5]], [[-0.24, -0.5], [0.24, -0.5]], [[-0.24, 0.5], [0.24, 0.5]]],
+  N: [[[-0.3, 0.5], [-0.3, -0.5]], [[-0.3, -0.5], [0.3, 0.5]], [[0.3, 0.5], [0.3, -0.5]]],
+  G: [[[0.3, -0.34], [0.04, -0.5], [-0.3, -0.34], [-0.36, 0.12], [-0.1, 0.5], [0.32, 0.34]], [[0.32, 0.34], [0.32, 0.08], [0.04, 0.08]]],
+  O: [[[0, -0.5], [0.3, -0.36], [0.36, 0], [0.3, 0.36], [0, 0.5], [-0.3, 0.36], [-0.36, 0], [-0.3, -0.36], [0, -0.5]]],
+};
+
+const BINGO_BALL_PREVIEW_FONT = {
+  B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
+  N: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+  G: ["01111", "10000", "10000", "10111", "10001", "10001", "01111"],
+  O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+};
+
+const drawPathStroke = (buffer, points, radius, color, alpha = 1) => {
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const [ax, ay] = points[index];
+    const [bx, by] = points[index + 1];
+    drawCapsule(buffer, ax, ay, bx, by, radius, color, alpha);
+  }
+};
+
+const drawBingoBallLetter = (buffer, cx, cy, radius, letter, color, alpha = 1) => {
+  const glyph = BINGO_BALL_PREVIEW_FONT[String(letter).toUpperCase()] ?? BINGO_BALL_PREVIEW_FONT.O;
+  const cell = radius * 0.128;
+  const width = glyph[0].length * cell;
+  const height = glyph.length * cell;
+  const originX = cx - (width * 0.5);
+  const originY = cy - (height * 0.5);
+  for (let row = 0; row < glyph.length; row += 1) {
+    for (let col = 0; col < glyph[row].length; col += 1) {
+      if (glyph[row][col] !== "1") continue;
+      drawRotatedRect(buffer, originX + (col * cell) + (cell * 0.5), originY + (row * cell) + (cell * 0.5), cell * 1.06, cell * 1.06, 0, color, alpha * 0.95, cell * 0.08);
+    }
+  }
+};
+
 const drawBingoBall = (buffer, cx, cy, radius, bodyColor, digit, alpha = 1) => {
   drawCircle(buffer, cx, cy, radius * 1.42, bodyColor, alpha * 0.08);
   drawCircle(buffer, cx, cy, radius * 1.18, bodyColor, alpha * 0.1);
@@ -444,7 +483,11 @@ const drawBingoBall = (buffer, cx, cy, radius, bodyColor, digit, alpha = 1) => {
   drawCircle(buffer, cx - (radius * 0.22), cy - (radius * 0.24), radius * 0.18, hexToRgb("#ffffff"), alpha * 0.24);
   drawCircle(buffer, cx, cy, radius * 0.44, hexToRgb("#ffffff"), alpha * 0.94);
   drawRing(buffer, cx, cy, radius * 0.44, Math.max(1.6, radius * 0.06), bodyColor, alpha * 0.6);
-  drawDigit(buffer, cx, cy, radius * 0.92, digit, hexToRgb("#141414"), alpha * 0.9);
+  if (/^[A-Z]$/i.test(String(digit))) {
+    drawBingoBallLetter(buffer, cx, cy, radius, digit, hexToRgb("#141414"), alpha * 0.96);
+  } else {
+    drawDigit(buffer, cx, cy, radius * 0.92, digit, hexToRgb("#141414"), alpha * 0.9);
+  }
   drawCircle(buffer, cx + (radius * 0.14), cy + (radius * 0.18), radius * 0.08, hexToRgb("#fffef6"), alpha * 0.16);
 };
 
@@ -5992,7 +6035,9 @@ const renderPremiumSocialThemeChatWink = (time, _seed, timeline, variant) => {
         drawTextBlock(rgba, "HA", x, y - 118 + wave, 5.9 * build, index % 2 === 0 ? COLOR_GOLD_SOFT : COLOR_HOT, heroAlpha * build * 0.82, COLOR_WHITE);
       }
       drawRing(rgba, centerX, y + 10, 138 + (beat.pulse * 28), 7, COLOR_HOT, heroAlpha * 0.24);
-      drawLaughFace(centerX, y + 10, 64 * build, heroAlpha * 0.72);
+      drawLaughFace(centerX, y + 2, 92 * build * pulse, heroAlpha * 0.9);
+      drawLaughFace(centerX - 118 * build, y + 82, 34 * build, heroAlpha * 0.58);
+      drawLaughFace(centerX + 118 * build, y + 82, 34 * build, heroAlpha * 0.58);
       drawTextBlock(rgba, "HAHAHA!", centerX, y + 138, 7.9 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
     } else if (variant.includes("emoji")) {
       for (let index = 0; index < 7; index += 1) {
@@ -6016,8 +6061,10 @@ const renderPremiumSocialThemeChatWink = (time, _seed, timeline, variant) => {
       drawTextBlock(rgba, "LOL!", centerX, y + 130, 9.4 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
     } else {
       drawBurstRays(rgba, centerX, y - 12, 168 * build, 14, COLOR_GOLD, COLOR_HOT, heroAlpha * 0.36, beat.progress * TAU, 1.1);
+      drawLaughFace(centerX - 118 * build, y - 42, 38 * build, heroAlpha * 0.58);
+      drawLaughFace(centerX + 118 * build, y - 42, 38 * build, heroAlpha * 0.58);
       drawTextBlock(rgba, "LOL", centerX, y + 8, 10.8 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
-      drawLaughFace(centerX, y - 128, 54 * build, heroAlpha * 0.72);
+      drawLaughFace(centerX, y - 128, 66 * build, heroAlpha * 0.82);
     }
   } else if (group === "win") {
     drawCrown(rgba, centerX, y - 88, 156 * build * pulse, COLOR_GOLD, heroAlpha);
