@@ -29,6 +29,13 @@ const birthdaySongIds = new Set([
   "trh-full-candle-wish-moment",
   "trh-full-happy-birthday-grand-finale",
 ]);
+const laughterVariantIds = new Set([
+  "trh-full-giant-lol-burst",
+  "trh-full-laughing-emoji-storm",
+  "trh-full-hahaha-text-wave",
+  "trh-full-rofl-jackpot",
+  "trh-full-laughter-grand-finale",
+]);
 
 const sourceCandidates = {
   applause: ["applause.ogg"],
@@ -67,6 +74,24 @@ const soundProfile = (id) => {
 
 const clamp = (value, min = -1, max = 1) => Math.max(min, Math.min(max, value));
 const hashId = (id) => Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+
+const wavFromStereoData = (data) => {
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(2, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 4, 28);
+  header.writeUInt16LE(4, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+};
 
 const makeFallbackWav = (id) => {
   const lower = id.toLowerCase();
@@ -183,6 +208,113 @@ const makeBirthdaySongWav = (id) => {
   return Buffer.concat([header, data]);
 };
 
+const laughEnvelope = (age, attack = 0.018, decay = 8.5) => {
+  if (age < 0) return 0;
+  return Math.min(1, age / attack) * Math.exp(-age * decay);
+};
+
+const addHaPulse = (time, start, baseFrequency, intensity, seed) => {
+  const age = time - start;
+  const env = laughEnvelope(age, 0.014, 9.2);
+  if (!env) return 0;
+  const wobble = 1 + Math.sin(age * 36 + seed) * 0.045;
+  return (
+    Math.sin(age * Math.PI * 2 * baseFrequency * wobble) * 0.34 +
+    Math.sin(age * Math.PI * 2 * baseFrequency * 2.18) * 0.13 +
+    Math.sin(age * Math.PI * 2 * baseFrequency * 3.4) * 0.05
+  ) * env * intensity;
+};
+
+const addComicPop = (time, start, baseFrequency, intensity, seed) => {
+  const age = time - start;
+  const env = laughEnvelope(age, 0.008, 13);
+  if (!env) return 0;
+  const pitch = baseFrequency * (1 + age * 2.8);
+  return (
+    Math.sin(age * Math.PI * 2 * pitch) * 0.24 +
+    Math.sin(age * Math.PI * 2 * (pitch * 1.8 + seed % 37)) * 0.08
+  ) * env * intensity;
+};
+
+const addBoing = (time, start, baseFrequency, intensity, seed) => {
+  const age = time - start;
+  const env = laughEnvelope(age, 0.02, 4.6);
+  if (!env) return 0;
+  const pitch = baseFrequency * (1 + Math.sin(age * 18) * 0.22);
+  return (
+    Math.sin(age * Math.PI * 2 * pitch) * 0.2 +
+    Math.sin(age * Math.PI * 2 * (pitch * 0.52)) * 0.12
+  ) * env * intensity;
+};
+
+const makeComedyLayerWav = (id) => {
+  const seed = hashId(id);
+  const lower = id.toLowerCase();
+  const sampleCount = Math.floor(sampleRate * durationSeconds);
+  const data = Buffer.alloc(sampleCount * 4);
+  const isLol = lower.includes("lol");
+  const isEmoji = lower.includes("emoji");
+  const isHaha = lower.includes("haha");
+  const isRofl = lower.includes("rofl");
+  const isFinale = lower.includes("finale");
+
+  const haTimes = isHaha
+    ? [0.58, 0.88, 1.18, 1.5, 2.1, 2.38, 2.66, 2.96, 3.8, 4.08, 4.38, 4.7]
+    : isEmoji
+      ? [0.5, 0.82, 1.22, 1.7, 2.18, 2.64, 3.26, 3.78, 4.24, 4.86]
+      : isRofl
+        ? [0.78, 1.0, 1.22, 2.55, 2.78, 3.02, 3.28, 4.55, 4.78, 5.0]
+        : isFinale
+          ? [0.5, 0.78, 1.08, 1.42, 2.12, 2.42, 2.72, 3.32, 3.62, 4.02, 4.32, 4.7, 5.08]
+          : [0.72, 1.02, 1.36, 2.5, 2.84, 3.18, 4.42, 4.78];
+  const popTimes = isLol
+    ? [0.38, 1.9, 3.05, 4.42]
+    : isRofl
+      ? [0.45, 2.28, 3.6, 4.9]
+      : isFinale
+        ? [0.34, 1.62, 2.92, 4.18, 5.34]
+        : [0.62, 2.02, 3.4, 4.82];
+  const boingTimes = isRofl ? [0.38, 1.92, 3.82] : isEmoji ? [1.06, 2.84, 4.52] : isFinale ? [1.16, 3.04, 4.92] : [2.15, 4.95];
+
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const time = sample / sampleRate;
+    const fade = time > 6.35 ? Math.max(0, 1 - ((time - 6.35) / 1.65)) : 1;
+    const stereoSwing = Math.sin(time * 3.2 + seed) * 0.12;
+    let left = 0;
+    let right = 0;
+
+    haTimes.forEach((start, index) => {
+      const frequency = (isRofl ? 155 : isHaha ? 210 : 250) + ((index + seed) % 4) * 22;
+      const value = addHaPulse(time, start, frequency, isHaha ? 0.68 : 0.5, seed + index);
+      const pan = index % 2 === 0 ? 0.68 : 0.36;
+      left += value * pan;
+      right += value * (1 - pan + stereoSwing);
+    });
+
+    popTimes.forEach((start, index) => {
+      const value = addComicPop(time, start, 420 + index * 70, isLol ? 0.7 : 0.46, seed + index);
+      const pan = index % 2 === 0 ? 0.42 : 0.64;
+      left += value * pan;
+      right += value * (1 - pan);
+    });
+
+    boingTimes.forEach((start, index) => {
+      const value = addBoing(time, start, isRofl ? 95 : 132 + index * 8, isRofl ? 0.8 : 0.48, seed + index);
+      const pan = index % 2 === 0 ? 0.58 : 0.4;
+      left += value * pan;
+      right += value * (1 - pan);
+    });
+
+    const tickle = Math.sin(time * Math.PI * 2 * (900 + Math.sin(time * 7) * 50)) * 0.012 * (isFinale ? 1.2 : 0.8);
+    left = clamp((left + tickle) * fade);
+    right = clamp((right - tickle * 0.75) * fade);
+    data.writeInt16LE(Math.round(left * 32767), sample * 4);
+    data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
+  }
+
+  return wavFromStereoData(data);
+};
+
 const run = (command, args) => new Promise((resolve, reject) => {
   const child = spawn(command, args, { stdio: "inherit" });
   child.on("exit", (code) => {
@@ -224,6 +356,43 @@ const renderFromRealSource = async ({ sourcePath, id, outputPath }) => {
   ]);
 };
 
+const renderLaughterVariant = async ({ sourcePath, id, outputPath }) => {
+  const wavPath = outputPath.replace(".mp3", ".comedy-layer.wav");
+  await fs.writeFile(wavPath, makeComedyLayerWav(id));
+  const lower = id.toLowerCase();
+  const realVolume = lower.includes("emoji") ? "0.62" : lower.includes("rofl") ? "0.56" : "0.52";
+  const comedyVolume = lower.includes("haha") ? "1.05" : lower.includes("finale") ? "0.98" : "0.9";
+  const filter = [
+    `[0:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=stereo,aloop=loop=-1:size=${sampleRate * durationSeconds},atrim=0:${durationSeconds},asetpts=N/SR/TB,volume=${realVolume},afade=t=in:st=0:d=0.08,afade=t=out:st=6.45:d=1.55[real]`,
+    `[1:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=stereo,volume=${comedyVolume},afade=t=out:st=6.35:d=1.65[comic]`,
+    `[real][comic]amix=inputs=2:duration=longest:normalize=0,atrim=0:${durationSeconds},alimiter=limit=0.92[out]`,
+  ].join(";");
+
+  try {
+    await run(ffmpegPath, [
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      sourcePath,
+      "-i",
+      wavPath,
+      "-filter_complex",
+      filter,
+      "-map",
+      "[out]",
+      "-codec:a",
+      "libmp3lame",
+      "-b:a",
+      "128k",
+      outputPath,
+    ]);
+  } finally {
+    await fs.rm(wavPath, { force: true });
+  }
+};
+
 const renderFallback = async ({ id, outputPath }) => {
   const wavPath = outputPath.replace(".mp3", ".wav");
   await fs.writeFile(wavPath, makeFallbackWav(id));
@@ -260,6 +429,9 @@ for (const id of originalIds) {
 
   if (profile === "birthday-song") {
     await renderBirthdaySong({ id, outputPath });
+    realCount += 1;
+  } else if (laughterVariantIds.has(id) && sourcePath) {
+    await renderLaughterVariant({ sourcePath, id, outputPath });
     realCount += 1;
   } else if (sourcePath) {
     await renderFromRealSource({ sourcePath, id, outputPath });
