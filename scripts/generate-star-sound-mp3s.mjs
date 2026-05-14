@@ -19,33 +19,39 @@ const sounds = [
 const clamp = (value, min = -1, max = 1) => Math.max(min, Math.min(max, value));
 
 const envelope = (time) => {
-  const intro = Math.min(1, time / 1.4);
+  const intro = Math.min(1, time / 1.7);
   const fade = time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1;
-  const hit = Math.exp(-((time - 3) ** 2) / 0.08) * 0.72;
-  const sustain = time > 3 && time < 6 ? 0.38 : 0;
-  return Math.min(1, ((0.28 * intro) + sustain + hit) * fade);
+  const hit = Math.exp(-((time - 3) ** 2) / 0.16) * 0.48;
+  const sustain = time > 3 && time < 6 ? 0.28 : 0;
+  return Math.min(1, ((0.2 * intro) + sustain + hit) * fade);
 };
 
 const makeWav = (frequencies, gain) => {
   const sampleCount = Math.floor(sampleRate * durationSeconds);
-  const data = Buffer.alloc(sampleCount * 2);
+  const data = Buffer.alloc(sampleCount * 4);
 
   for (let sample = 0; sample < sampleCount; sample += 1) {
     const time = sample / sampleRate;
-    let value = 0;
+    let left = 0;
+    let right = 0;
     for (let index = 0; index < frequencies.length; index += 1) {
       const frequency = frequencies[index];
       const shimmer = 1 + (Math.sin(time * 2.7 + index) * 0.005);
-      value += Math.sin(time * Math.PI * 2 * frequency * shimmer) * (0.22 / (index + 1));
-      value += Math.sin(time * Math.PI * 2 * (frequency * 2.01)) * (0.035 / (index + 1));
+      const pan = index % 2 === 0 ? 0.62 : 0.38;
+      const tone = Math.sin(time * Math.PI * 2 * frequency * shimmer) * (0.16 / (index + 1));
+      const overtone = Math.sin(time * Math.PI * 2 * (frequency * 2.01)) * (0.022 / (index + 1));
+      left += (tone + overtone) * pan;
+      right += (tone + overtone) * (1 - pan);
     }
-    const twinkle = Math.sin(time * Math.PI * 2 * (2400 + (Math.sin(time * 5) * 80))) * (0.08 + (0.04 * Math.sin(time * 18)));
+    const twinkle = Math.sin(time * Math.PI * 2 * (1900 + (Math.sin(time * 3.6) * 64))) * (0.035 + (0.018 * Math.sin(time * 12)));
     const sparkleHits = [0.25, 0.8, 1.35, 2.05, 3, 3.18, 4.2, 5.1].reduce((sum, hitTime, index) => {
-      const decay = Math.exp(-Math.max(0, time - hitTime) * 9);
-      return time >= hitTime ? sum + (Math.sin(time * Math.PI * 2 * (1800 + (index * 140))) * decay * 0.16) : sum;
+      const decay = Math.exp(-Math.max(0, time - hitTime) * 7);
+      return time >= hitTime ? sum + (Math.sin(time * Math.PI * 2 * (1450 + (index * 110))) * decay * 0.09) : sum;
     }, 0);
-    value = clamp((value + twinkle + sparkleHits) * envelope(time) * gain * 0.72);
-    data.writeInt16LE(Math.round(value * 32767), sample * 2);
+    left = clamp((left + twinkle + sparkleHits) * envelope(time) * gain * 0.58);
+    right = clamp((right - (twinkle * 0.72) + (sparkleHits * 0.82)) * envelope(time) * gain * 0.58);
+    data.writeInt16LE(Math.round(left * 32767), sample * 4);
+    data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
   }
 
   const header = Buffer.alloc(44);
@@ -55,10 +61,10 @@ const makeWav = (frequencies, gain) => {
   header.write("fmt ", 12);
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
-  header.writeUInt16LE(1, 22);
+  header.writeUInt16LE(2, 22);
   header.writeUInt32LE(sampleRate, 24);
-  header.writeUInt32LE(sampleRate * 2, 28);
-  header.writeUInt16LE(2, 32);
+  header.writeUInt32LE(sampleRate * 4, 28);
+  header.writeUInt16LE(4, 32);
   header.writeUInt16LE(16, 34);
   header.write("data", 36);
   header.writeUInt32LE(data.length, 40);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Folder, Gauge, Play } from "lucide-react";
 
 import { ApngPreviewSurface } from "@/components/ApngPreviewSurface";
@@ -34,66 +34,96 @@ export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, o
   const defaultFullscreenPlaybackSpeed = 1.35;
   const [fullscreenPlaybackSpeed, setFullscreenPlaybackSpeed] = useState(defaultFullscreenPlaybackSpeed);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioFadeFrameRef = useRef(0);
+  const audioTimersRef = useRef<number[]>([]);
 
   useEffect(() => {
     setFullscreenPlaybackSpeed(defaultFullscreenPlaybackSpeed);
   }, [asset?.id, defaultFullscreenPlaybackSpeed]);
 
-  useEffect(() => {
-    const audioSource = asset?.audioPath ? withCacheVersion(asset.audioPath, cacheVersion) : null;
+  const stopPreviewAudio = useCallback((fadeOut = false) => {
+    const audio = audioRef.current;
 
-    if (!audioSource || typeof Audio === "undefined") {
-      audioRef.current?.pause();
-      audioRef.current = null;
+    for (const timerId of audioTimersRef.current) {
+      window.clearTimeout(timerId);
+    }
+    audioTimersRef.current = [];
+
+    if (audioFadeFrameRef.current) {
+      window.cancelAnimationFrame(audioFadeFrameRef.current);
+      audioFadeFrameRef.current = 0;
+    }
+
+    if (!audio) {
       return;
     }
 
-    const speed = Math.max(fullscreenPlaybackSpeed, 0.1);
-    const audio = new Audio(audioSource);
-    let fadeFrame = 0;
-    audioRef.current = audio;
-    audio.volume = 0.72;
-    audio.currentTime = 0;
-    audio.playbackRate = speed;
-
-    const fadeTimer = window.setTimeout(() => {
+    if (fadeOut && !audio.paused) {
       const fadeStart = performance.now();
       const startVolume = audio.volume;
       const fade = (now: number) => {
-        const progress = Math.min(1, (now - fadeStart) / 1400);
+        const progress = Math.min(1, (now - fadeStart) / 900);
         audio.volume = startVolume * (1 - progress);
 
         if (progress < 1 && !audio.paused) {
-          fadeFrame = window.requestAnimationFrame(fade);
+          audioFadeFrameRef.current = window.requestAnimationFrame(fade);
+          return;
+        }
+
+        audio.pause();
+        audio.currentTime = 0;
+        if (audioRef.current === audio) {
+          audioRef.current = null;
         }
       };
 
-      fadeFrame = window.requestAnimationFrame(fade);
-    }, 6000 / speed);
+      audioFadeFrameRef.current = window.requestAnimationFrame(fade);
+      return;
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
+    if (audioRef.current === audio) {
+      audioRef.current = null;
+    }
+  }, []);
+
+  const startPreviewAudio = useCallback((timing: { durationMs: number }) => {
+    const audioSource = asset?.audioPath ? withCacheVersion(asset.audioPath, cacheVersion) : null;
+
+    if (!audioSource || typeof Audio === "undefined") {
+      stopPreviewAudio();
+      return;
+    }
+
+    stopPreviewAudio();
+    const audio = new Audio(audioSource);
+    const durationMs = Math.max(1000, timing.durationMs);
+    audioRef.current = audio;
+    audio.volume = asset?.fullscreenCategory === "Flowers Sound Experience" ? 0.48 : 0.58;
+    audio.currentTime = 0;
+    audio.playbackRate = Math.min(3, Math.max(0.5, 8000 / durationMs));
+
+    const fadeTimer = window.setTimeout(() => {
+      stopPreviewAudio(true);
+    }, Math.max(250, durationMs - 1200));
 
     const stopTimer = window.setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-    }, 8200 / speed);
+      stopPreviewAudio();
+    }, durationMs + 120);
+    audioTimersRef.current = [fadeTimer, stopTimer];
 
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       void playPromise.catch(() => undefined);
     }
+  }, [asset?.audioPath, asset?.fullscreenCategory, cacheVersion, stopPreviewAudio]);
 
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(stopTimer);
-      if (fadeFrame) {
-        window.cancelAnimationFrame(fadeFrame);
-      }
-      audio.pause();
-      audio.currentTime = 0;
-      if (audioRef.current === audio) {
-        audioRef.current = null;
-      }
-    };
-  }, [asset?.audioPath, asset?.id, cacheVersion, fullscreenPlaybackSpeed, previewSessionId]);
+  const handlePreviewPlaybackEnd = useCallback(() => {
+    stopPreviewAudio(true);
+  }, [stopPreviewAudio]);
+
+  useEffect(() => () => stopPreviewAudio(), [asset?.id, previewSessionId, stopPreviewAudio]);
 
   if (!asset) {
     return null;
@@ -218,6 +248,8 @@ export const WinkPreviewDialog = ({ asset, cacheVersion, previewSessionId = 0, o
                     startAtProgress={fullscreenStartProgress}
                     playbackSpeed={fullscreenPlaybackSpeed}
                     showFallbackBeforeReady={false}
+                    onPlaybackStart={asset.audioPath ? startPreviewAudio : undefined}
+                    onPlaybackEnd={asset.audioPath ? handlePreviewPlaybackEnd : undefined}
                   />
                   <div className="wink-card-live-halo rounded-[22px]" aria-hidden="true" />
                 </div>

@@ -29,6 +29,8 @@ type LottiePreviewSurfaceProps = {
   loop?: boolean;
   showFallbackUnderlay?: boolean;
   showFallbackBeforeReady?: boolean;
+  onPlaybackStart?: (timing: { durationMs: number }) => void;
+  onPlaybackEnd?: () => void;
 };
 
 export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, LottiePreviewSurfaceProps>(({
@@ -42,6 +44,8 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
   loop = false,
   showFallbackUnderlay = false,
   showFallbackBeforeReady = true,
+  onPlaybackStart,
+  onPlaybackEnd,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationRef = useRef<AnimationController | null>(null);
@@ -95,6 +99,7 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
         playbackRef.current.isPlaying = false;
         containerRef.current?.setAttribute("data-current-frame", `${Math.round(finalFrame)}`);
         animation.goToAndStop?.(finalFrame, true);
+        onPlaybackEnd?.();
         stopPlaybackLoop();
         return;
       }
@@ -133,6 +138,10 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
     containerRef.current?.setAttribute("data-current-frame", `${Math.round(startFrame)}`);
     animation.goToAndStop?.(startFrame, true);
     runPlaybackLoop();
+    const remainingFrames = Math.max(1, (frameWindowRef.current.inPoint + frameWindowRef.current.totalFrames) - startFrame);
+    onPlaybackStart?.({
+      durationMs: (remainingFrames / Math.max(1, playbackRef.current.frameRate) / Math.max(0.1, playbackSpeed)) * 1000,
+    });
   };
 
   useImperativeHandle(
@@ -245,11 +254,12 @@ export const LottiePreviewSurface = forwardRef<LottiePreviewSurfaceHandle, Lotti
       }
       pendingPlaybackProgressRef.current = null;
       playbackRef.current.isPlaying = false;
+      onPlaybackEnd?.();
       stopPlaybackLoop();
       animationRef.current?.destroy();
       animationRef.current = null;
     };
-  }, [autoplay, loop, playbackSpeed, src, startAtProgress]);
+  }, [autoplay, loop, onPlaybackEnd, onPlaybackStart, playbackSpeed, src, startAtProgress]);
 
   if (hasError) {
     return (
