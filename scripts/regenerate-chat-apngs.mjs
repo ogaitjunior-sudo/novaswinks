@@ -5974,12 +5974,51 @@ const renderPremiumSocialThemeChatWink = (time, _seed, timeline, variant) => {
     drawThumbsUp(rgba, centerX + 62, y + 18, 118 * build * pulse, { hand: hexToRgb("#fff4dd"), cuff: COLOR_CYAN, glow: COLOR_GOLD, outline: COLOR_WHITE }, heroAlpha, -0.18);
     drawTextBlock(rgba, variant.includes("bravo") ? "BRAVO" : "CLAP", centerX, y + 140, 6.2, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
   } else if (group === "laugh") {
-    const label = variant.includes("haha") ? "HAHAHA" : variant.includes("rofl") ? "ROFL!" : variant.includes("finale") ? "LOL!" : "LOL";
-    drawCircle(rgba, centerX, y, 82 * build * pulse, COLOR_GOLD, heroAlpha * 0.72);
-    drawCircle(rgba, centerX - 28, y - 18, 8 * build, hexToRgb("#34210a"), heroAlpha);
-    drawCircle(rgba, centerX + 28, y - 18, 8 * build, hexToRgb("#34210a"), heroAlpha);
-    drawCapsule(rgba, centerX - 34, y + 28, centerX + 34, y + 28, 8 * build, hexToRgb("#34210a"), heroAlpha);
-    drawTextBlock(rgba, label, centerX, y + 132, label.length > 5 ? 5.4 : 7.6, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+    const faceAlpha = heroAlpha * build;
+    const drawLaughFace = (x, faceY, size, alpha = faceAlpha) => {
+      drawCircle(rgba, x, faceY, size, COLOR_GOLD, alpha * 0.82);
+      drawCircle(rgba, x - (size * 0.34), faceY - (size * 0.22), size * 0.08, hexToRgb("#34210a"), alpha);
+      drawCircle(rgba, x + (size * 0.34), faceY - (size * 0.22), size * 0.08, hexToRgb("#34210a"), alpha);
+      drawCircle(rgba, x, faceY + (size * 0.27), size * 0.28, hexToRgb("#34210a"), alpha * 0.95);
+      drawCapsule(rgba, x - (size * 0.2), faceY + (size * 0.16), x + (size * 0.2), faceY + (size * 0.16), size * 0.045, COLOR_WHITE, alpha * 0.72);
+      drawSpark(rgba, x - (size * 0.54), faceY + (size * 0.04), size * 0.16, COLOR_CYAN, alpha * 0.62);
+      drawSpark(rgba, x + (size * 0.54), faceY + (size * 0.04), size * 0.16, COLOR_CYAN, alpha * 0.62);
+    };
+
+    if (variant.includes("haha")) {
+      for (let index = 0; index < 6; index += 1) {
+        const wave = Math.sin((beat.progress * 7) + index * 0.9) * 34;
+        const x = centerX - 225 + (index * 90);
+        drawTextBlock(rgba, "HA", x, y - 118 + wave, 5.9 * build, index % 2 === 0 ? COLOR_GOLD_SOFT : COLOR_HOT, heroAlpha * build * 0.82, COLOR_WHITE);
+      }
+      drawRing(rgba, centerX, y + 10, 138 + (beat.pulse * 28), 7, COLOR_HOT, heroAlpha * 0.24);
+      drawLaughFace(centerX, y + 10, 64 * build, heroAlpha * 0.72);
+      drawTextBlock(rgba, "HAHAHA!", centerX, y + 138, 7.9 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+    } else if (variant.includes("emoji")) {
+      for (let index = 0; index < 7; index += 1) {
+        const angle = (index / 7) * TAU + beat.progress * 1.4;
+        drawLaughFace(centerX + Math.cos(angle) * 122 * build, y + Math.sin(angle) * 106 * build, 28 * build, heroAlpha * 0.66);
+      }
+      drawLaughFace(centerX, y, 96 * build * pulse, heroAlpha);
+      drawTextBlock(rgba, "LOL", centerX, y + 148, 8.4 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_CYAN);
+    } else if (variant.includes("rofl")) {
+      drawRing(rgba, centerX, y - 10, 168 * build, 7, COLOR_HOT, heroAlpha * 0.28);
+      drawBurstRays(rgba, centerX, y - 10, 188 * build, 12, COLOR_HOT, COLOR_GOLD, heroAlpha * 0.32, beat.progress * TAU, 1.2);
+      drawLaughFace(centerX - 62 * build, y + 8, 72 * build * pulse, heroAlpha * 0.88);
+      drawLaughFace(centerX + 62 * build, y + 8, 72 * build * pulse, heroAlpha * 0.88);
+      drawTextBlock(rgba, "ROFL!", centerX, y + 128, 9.2 * build, COLOR_PINK, heroAlpha * build, COLOR_GOLD_SOFT);
+    } else if (variant.includes("finale")) {
+      for (let index = 0; index < 8; index += 1) {
+        const angle = (index / 8) * TAU - beat.progress * 1.2;
+        drawTextBlock(rgba, index % 2 === 0 ? "HA" : "LOL", centerX + Math.cos(angle) * 150 * build, y + Math.sin(angle) * 122 * build, 4.8 * build, index % 2 === 0 ? COLOR_HOT : COLOR_CYAN, heroAlpha * build * 0.72, COLOR_WHITE);
+      }
+      drawLaughFace(centerX, y - 8, 82 * build * pulse, heroAlpha * 0.88);
+      drawTextBlock(rgba, "LOL!", centerX, y + 130, 9.4 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+    } else {
+      drawBurstRays(rgba, centerX, y - 12, 168 * build, 14, COLOR_GOLD, COLOR_HOT, heroAlpha * 0.36, beat.progress * TAU, 1.1);
+      drawTextBlock(rgba, "LOL", centerX, y + 8, 10.8 * build, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_PINK);
+      drawLaughFace(centerX, y - 128, 54 * build, heroAlpha * 0.72);
+    }
   } else if (group === "win") {
     drawCrown(rgba, centerX, y - 88, 156 * build * pulse, COLOR_GOLD, heroAlpha);
     drawTextBlock(rgba, variant.includes("big") || variant.includes("mega") ? "BIG WIN" : "WIN", centerX, y + 38, variant.includes("big") || variant.includes("mega") ? 6.8 : 10.4, COLOR_GOLD_SOFT, heroAlpha * build, COLOR_WHITE);
