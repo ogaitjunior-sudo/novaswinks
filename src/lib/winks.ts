@@ -27,7 +27,7 @@ export type ChatWinkCategory =
   | "Premium Jackpot"
   | "Reactions"
   | "Birthday";
-export type FullscreenWinkCategory = "Celebration" | "Fireworks Grand Finale" | "Animated Neon Backgrounds" | "Ultimate Mixed Effects" | "Confetti Explosion" | "Premium Confetti" | "Premium" | "Golden Stars" | "Stars Sound Experience" | "Starry Sky / Blinking Stars" | "Christmas / Natal" | "Snowman / Boneco de Neve" | "Applause / Clapping / Ovation" | "Countdown Bingo" | "Bingo Balls" | "Hearts" | "Kiss" | "Thumbs Up" | "Flowers" | "Flowers Sound Experience" | "Rose / Romantic Floral" | "Leprechaun" | "Bingo" | "Happy Birthday" | "Thanks / Thank You" | "Win / Victory / Big Reward" | "Friendship / Friends" | "Casino Emotion / Bingo Reaction Winks" | "Laughter / Funny Reaction" | "Golden Confetti / Luxury Celebration";
+export type FullscreenWinkCategory = "Celebration" | "Fireworks Grand Finale" | "Animated Neon Backgrounds" | "Ultimate Mixed Effects" | "Confetti Explosion" | "Premium Confetti" | "Premium" | "Golden Stars" | "Stars Sound Experience" | "Starry Sky / Blinking Stars" | "Christmas / Natal" | "Snowman / Boneco de Neve" | "Applause / Clapping / Ovation" | "Countdown Bingo" | "Bingo Balls" | "Hearts" | "Kiss" | "Thumbs Up" | "Flowers" | "Flowers Sound Experience" | "Sound Experience" | "Rose / Romantic Floral" | "Leprechaun" | "Bingo" | "Happy Birthday" | "Thanks / Thank You" | "Win / Victory / Big Reward" | "Friendship / Friends" | "Casino Emotion / Bingo Reaction Winks" | "Laughter / Funny Reaction" | "Golden Confetti / Luxury Celebration";
 
 export type WinkAsset = {
   id: string;
@@ -3690,10 +3690,29 @@ const flowerSoundExperienceWinks: WinkAsset[] = winkLibrary
     eyebrow: `${asset.eyebrow} sound`,
   }));
 
+const generalSoundExperienceWinks: WinkAsset[] = winkLibrary
+  .filter((asset) => (
+    asset.category === "fullscreen" &&
+    asset.fullscreenCategory !== "Golden Stars" &&
+    asset.fullscreenCategory !== "Flowers"
+  ))
+  .map((asset) => ({
+    ...asset,
+    id: `${asset.id}-sound`,
+    name: `${asset.name} Sound`,
+    fullscreenCategory: "Sound Experience",
+    description: `${asset.description} Versao duplicada com audio premium sincronizado.`,
+    filePath: asset.filePath.replace(".json", "-sound.json"),
+    previewPath: asset.previewPath.replace(".png", "-sound.png"),
+    audioPath: `/audio/fullscreen/${asset.id}-sound.mp3`,
+    eyebrow: `${asset.eyebrow} sound`,
+  }));
+
 export const fullscreenWinks = [
   ...winkLibrary.filter((asset) => asset.category === "fullscreen"),
   ...starSoundExperienceWinks,
   ...flowerSoundExperienceWinks,
+  ...generalSoundExperienceWinks,
 ];
 
 export const chatWinkCategoryOrder: ChatWinkCategory[] = [
@@ -3800,7 +3819,7 @@ export const chatWinkCategoryMeta: Record<
   Birthday: { accent: "#ff63c7", description: "Birthday chat overlays with cake hero, balloons, and warm sticker polish.", vibe: "Warm and festive" },
 };
 
-export const fullscreenWinkCategoryOrder: FullscreenWinkCategory[] = ["Celebration", "Fireworks Grand Finale", "Animated Neon Backgrounds", "Ultimate Mixed Effects", "Confetti Explosion", "Premium Confetti", "Premium", "Golden Stars", "Stars Sound Experience", "Starry Sky / Blinking Stars", "Christmas / Natal", "Snowman / Boneco de Neve", "Applause / Clapping / Ovation", "Countdown Bingo", "Bingo Balls", "Hearts", "Kiss", "Thumbs Up", "Flowers", "Flowers Sound Experience", "Rose / Romantic Floral", "Leprechaun", "Bingo", "Happy Birthday", "Thanks / Thank You", "Win / Victory / Big Reward", "Friendship / Friends", "Casino Emotion / Bingo Reaction Winks", "Laughter / Funny Reaction", "Golden Confetti / Luxury Celebration"];
+export const fullscreenWinkCategoryOrder: FullscreenWinkCategory[] = ["Celebration", "Fireworks Grand Finale", "Animated Neon Backgrounds", "Ultimate Mixed Effects", "Confetti Explosion", "Premium Confetti", "Premium", "Golden Stars", "Stars Sound Experience", "Starry Sky / Blinking Stars", "Christmas / Natal", "Snowman / Boneco de Neve", "Applause / Clapping / Ovation", "Countdown Bingo", "Bingo Balls", "Hearts", "Kiss", "Thumbs Up", "Flowers", "Flowers Sound Experience", "Sound Experience", "Rose / Romantic Floral", "Leprechaun", "Bingo", "Happy Birthday", "Thanks / Thank You", "Win / Victory / Big Reward", "Friendship / Friends", "Casino Emotion / Bingo Reaction Winks", "Laughter / Funny Reaction", "Golden Confetti / Luxury Celebration"];
 
 export const fullscreenWinkCategoryMeta: Record<
   FullscreenWinkCategory,
@@ -3905,6 +3924,11 @@ export const fullscreenWinkCategoryMeta: Record<
     accent: "#ff9fd0",
     description: "Copias dos Flowers com audio floral magico separado, suave e sincronizado no preview.",
     vibe: "Elegant with sound",
+  },
+  "Sound Experience": {
+    accent: "#fff1b4",
+    description: "Copias sonoras dos demais fullscreen winks com audio separado, sincronizado e fade elegante.",
+    vibe: "Premium with sound",
   },
   "Rose / Romantic Floral": {
     accent: "#e94765",

@@ -91,7 +91,7 @@ const Index = () => {
     ? chatWinks
     : chatWinks.filter((asset) => asset.chatCategory === selectedChatCategory);
   const visibleFullscreenWinks = selectedFullscreenCategory === "all"
-    ? fullscreenWinks
+    ? fullscreenWinks.filter((asset) => !asset.audioPath)
     : selectedFullscreenCategory === "sound"
       ? fullscreenWinks.filter((asset) => Boolean(asset.audioPath))
     : fullscreenWinks.filter((asset) => asset.fullscreenCategory === selectedFullscreenCategory);

@@ -127,12 +127,13 @@ describe("wink assets", () => {
       expect(alphaSummary.transparent).toBeGreaterThan(0);
       expect(alphaSummary.visible).toBeGreaterThan(0);
     }
-  }, 25000);
+  }, 90000);
 
   it("ships separate mp3 files for the sound experience packs", async () => {
     const soundAssets = fullscreenWinks.filter((asset) => asset.audioPath);
     expect(soundAssets.filter((asset) => asset.fullscreenCategory === "Stars Sound Experience")).toHaveLength(5);
     expect(soundAssets.filter((asset) => asset.fullscreenCategory === "Flowers Sound Experience")).toHaveLength(5);
+    expect(soundAssets.filter((asset) => asset.fullscreenCategory === "Sound Experience")).toHaveLength(141);
 
     for (const asset of soundAssets) {
       expect(asset.audioPath).toBeTruthy();

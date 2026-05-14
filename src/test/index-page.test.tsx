@@ -7,12 +7,13 @@ import Index from "@/pages/Index";
 describe("Index page", () => {
   it("renders the active chat and fullscreen wink lanes", () => {
     render(<Index />);
+    const defaultFullscreenWinks = fullscreenWinks.filter((asset) => !asset.audioPath);
 
     expect(screen.getAllByText("Gabriel e Oscar").length).toBeGreaterThan(0);
     expect(screen.getAllByText("CHAT WINKS").length).toBeGreaterThan(0);
     expect(screen.getAllByText("FULL BINGO WINKS").length).toBeGreaterThan(0);
 
-    for (const asset of [...chatWinks, ...fullscreenWinks]) {
+    for (const asset of [...chatWinks, ...defaultFullscreenWinks]) {
       expect(screen.getAllByText(asset.name).length).toBeGreaterThan(0);
     }
 
@@ -21,7 +22,7 @@ describe("Index page", () => {
     expect(screen.queryByText("EM CONSTRUÇÃO")).not.toBeInTheDocument();
     expect(screen.queryByText("EM RECONSTRUCAO")).not.toBeInTheDocument();
 
-    const totalEffects = chatWinks.length + fullscreenWinks.length;
+    const totalEffects = chatWinks.length + defaultFullscreenWinks.length;
     expect(screen.getAllByRole("button", { name: "PREVIEW" })).toHaveLength(totalEffects);
     expect(screen.getAllByRole("link", { name: /BAIXAR/i })).toHaveLength(totalEffects);
   }, 60000);
@@ -48,7 +49,7 @@ describe("Index page", () => {
     expect(fullscreenQueries.queryByText("MAIS EFEITOS")).not.toBeInTheDocument();
 
     fireEvent.click(fullscreenQueries.getByRole("button", { name: "TODOS" }));
-    for (const asset of fullscreenWinks) {
+    for (const asset of fullscreenWinks.filter((entry) => !entry.audioPath)) {
       expect(fullscreenQueries.getAllByText(asset.name).length).toBeGreaterThan(0);
     }
   }, 20000);
