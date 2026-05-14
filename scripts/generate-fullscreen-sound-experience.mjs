@@ -22,6 +22,13 @@ const skipSpecialSoundIds = new Set([
   "trh-full-floral-heart-bloom",
   "trh-full-bloom-burst-finale",
 ]);
+const birthdaySongIds = new Set([
+  "trh-full-birthday-cake-celebration",
+  "trh-full-balloon-party-burst",
+  "trh-full-gift-box-explosion",
+  "trh-full-candle-wish-moment",
+  "trh-full-happy-birthday-grand-finale",
+]);
 
 const sourceCandidates = {
   applause: ["applause.ogg"],
@@ -48,6 +55,7 @@ const sourcePathFor = async (profile) => {
 
 const soundProfile = (id) => {
   const lower = id.toLowerCase();
+  if (birthdaySongIds.has(id)) return "birthday-song";
   if (lower.includes("applause") || lower.includes("clap") || lower.includes("ovation") || lower.includes("bravo")) return "applause";
   if (lower.includes("laugh") || lower.includes("lol") || lower.includes("haha") || lower.includes("rofl") || lower.includes("troll") || lower.includes("omg")) return "laughter";
   if (lower.includes("firework") || lower.includes("explosion") || lower.includes("blast") || lower.includes("detonation")) return "fireworks";
@@ -90,6 +98,70 @@ const makeFallbackWav = (id) => {
 
     left = clamp(left * env * 0.72);
     right = clamp(right * env * 0.72);
+    data.writeInt16LE(Math.round(left * 32767), sample * 4);
+    data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
+  }
+
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(2, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 4, 28);
+  header.writeUInt16LE(4, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+};
+
+const midiToHz = (note) => 440 * (2 ** ((note - 69) / 12));
+
+const makeBirthdaySongWav = (id) => {
+  const seed = hashId(id);
+  const sampleCount = Math.floor(sampleRate * durationSeconds);
+  const data = Buffer.alloc(sampleCount * 4);
+  const transpose = seed % 2 === 0 ? 0 : 2;
+  const melody = [
+    [0.18, 0.32, 60], [0.52, 0.32, 60], [0.88, 0.58, 62], [1.48, 0.58, 60], [2.08, 0.58, 65], [2.68, 0.92, 64],
+    [3.38, 0.32, 60], [3.72, 0.32, 60], [4.08, 0.58, 62], [4.68, 0.58, 60], [5.28, 0.58, 67], [5.88, 1.02, 65],
+    [6.42, 0.24, 60], [6.7, 0.24, 60], [6.98, 0.46, 72], [7.42, 0.5, 69],
+  ];
+
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const time = sample / sampleRate;
+    const fade = time > 7.1 ? Math.max(0, 1 - ((time - 7.1) / 0.9)) : 1;
+    let left = 0;
+    let right = 0;
+
+    for (let index = 0; index < melody.length; index += 1) {
+      const [start, duration, midi] = melody[index];
+      if (time < start || time > start + duration + 0.42) continue;
+      const age = time - start;
+      const frequency = midiToHz(midi + transpose);
+      const attack = Math.min(1, age / 0.035);
+      const decay = Math.exp(-Math.max(0, age - duration) * 5.2);
+      const noteEnv = attack * decay * (age <= duration ? 1 : 0.72);
+      const bellTone =
+        Math.sin(age * Math.PI * 2 * frequency) * 0.18 +
+        Math.sin(age * Math.PI * 2 * frequency * 2.01) * 0.055 +
+        Math.sin(age * Math.PI * 2 * frequency * 3.02) * 0.018;
+      const pan = index % 2 === 0 ? 0.58 : 0.42;
+      left += bellTone * noteEnv * pan;
+      right += bellTone * noteEnv * (1 - pan);
+    }
+
+    const softPad =
+      Math.sin(time * Math.PI * 2 * midiToHz(48 + transpose)) * 0.025 +
+      Math.sin(time * Math.PI * 2 * midiToHz(55 + transpose)) * 0.02;
+    const sparkle = Math.sin(time * Math.PI * 2 * (1320 + Math.sin(time * 2.1) * 30)) * 0.012;
+    const body = (0.86 + Math.sin(time * 0.8) * 0.05) * fade;
+    left = clamp((left + softPad + sparkle) * body);
+    right = clamp((right + softPad - sparkle * 0.7) * body);
     data.writeInt16LE(Math.round(left * 32767), sample * 4);
     data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
   }
@@ -159,6 +231,13 @@ const renderFallback = async ({ id, outputPath }) => {
   await fs.rm(wavPath, { force: true });
 };
 
+const renderBirthdaySong = async ({ id, outputPath }) => {
+  const wavPath = outputPath.replace(".mp3", ".wav");
+  await fs.writeFile(wavPath, makeBirthdaySongWav(id));
+  await run(ffmpegPath, ["-y", "-hide_banner", "-loglevel", "error", "-i", wavPath, "-codec:a", "libmp3lame", "-b:a", "128k", outputPath]);
+  await fs.rm(wavPath, { force: true });
+};
+
 await fs.mkdir(audioDir, { recursive: true });
 
 const winkFiles = await fs.readdir(winkDir);
@@ -179,7 +258,10 @@ for (const id of originalIds) {
   const profile = soundProfile(id);
   const sourcePath = await sourcePathFor(profile);
 
-  if (sourcePath) {
+  if (profile === "birthday-song") {
+    await renderBirthdaySong({ id, outputPath });
+    realCount += 1;
+  } else if (sourcePath) {
     await renderFromRealSource({ sourcePath, id, outputPath });
     realCount += 1;
   } else {
