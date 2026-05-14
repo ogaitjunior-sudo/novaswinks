@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   Crown,
@@ -85,16 +85,50 @@ const Index = () => {
   const [selectedFullscreenCategory, setSelectedFullscreenCategory] = useState<FullscreenWinkCategory | "all" | "sound">("all");
   const [assetCacheVersion, setAssetCacheVersion] = useState("");
   const [cacheStatus, setCacheStatus] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") {
+      return new Set();
+    }
+
+    try {
+      return new Set(JSON.parse(window.localStorage.getItem("gabriel-oscar-wink-favorites") ?? "[]"));
+    } catch {
+      return new Set();
+    }
+  });
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const hasChatWinks = chatWinks.length > 0;
   const hasFullscreenWinks = fullscreenWinks.length > 0;
-  const visibleChatWinks = selectedChatCategory === "all"
+  const visibleChatWinksBase = selectedChatCategory === "all"
     ? chatWinks
     : chatWinks.filter((asset) => asset.chatCategory === selectedChatCategory);
-  const visibleFullscreenWinks = selectedFullscreenCategory === "all"
+  const visibleFullscreenWinksBase = selectedFullscreenCategory === "all"
     ? fullscreenWinks.filter((asset) => !asset.audioPath)
     : selectedFullscreenCategory === "sound"
       ? fullscreenWinks.filter((asset) => Boolean(asset.audioPath))
     : fullscreenWinks.filter((asset) => asset.fullscreenCategory === selectedFullscreenCategory);
+  const visibleChatWinks = showFavoritesOnly
+    ? visibleChatWinksBase.filter((asset) => favoriteIds.has(asset.id))
+    : visibleChatWinksBase;
+  const visibleFullscreenWinks = showFavoritesOnly
+    ? visibleFullscreenWinksBase.filter((asset) => favoriteIds.has(asset.id))
+    : visibleFullscreenWinksBase;
+
+  useEffect(() => {
+    window.localStorage.setItem("gabriel-oscar-wink-favorites", JSON.stringify(Array.from(favoriteIds)));
+  }, [favoriteIds]);
+
+  const toggleFavorite = (assetId: string) => {
+    setFavoriteIds((current) => {
+      const next = new Set(current);
+      if (next.has(assetId)) {
+        next.delete(assetId);
+      } else {
+        next.add(assetId);
+      }
+      return next;
+    });
+  };
 
   const handleClearSiteCache = async () => {
     try {
@@ -142,11 +176,20 @@ const Index = () => {
                 key={label}
                 href={href}
                 className={`studio-sidebar-link ${
-                  (label === "WINK STUDIO" && selectedFullscreenCategory === "all") ||
+                  (label === "WINK STUDIO" && selectedFullscreenCategory === "all" && !showFavoritesOnly) ||
+                  (label === "FAVORITES" && showFavoritesOnly) ||
                   (soundOnly && selectedFullscreenCategory === "sound") ||
                   selectedFullscreenCategory === fullscreenCategory ? "is-active" : ""
                 }`}
                 onClick={(event) => {
+                  if (label === "FAVORITES") {
+                    event.preventDefault();
+                    setShowFavoritesOnly(true);
+                    document.querySelector("#fullscreen-winks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    return;
+                  }
+
+                  setShowFavoritesOnly(false);
                   if (!fullscreenCategory && !soundOnly) {
                     return;
                   }
@@ -275,6 +318,8 @@ const Index = () => {
                       downloadLabel="BAIXAR APNG"
                       accentColor={asset.accent}
                       className="chat-wink-card"
+                      isFavorite={favoriteIds.has(asset.id)}
+                      onToggleFavorite={() => toggleFavorite(asset.id)}
                       onOpenPreview={() => handleOpenAssetPreview(asset)}
                     />
                   ))
@@ -373,6 +418,8 @@ const Index = () => {
                         downloadLabel="BAIXAR JSON"
                         accentColor={asset.accent}
                         className="fullscreen-wink-card"
+                        isFavorite={favoriteIds.has(asset.id)}
+                        onToggleFavorite={() => toggleFavorite(asset.id)}
                         onOpenPreview={() => handleOpenAssetPreview(asset)}
                       />
                     ))}

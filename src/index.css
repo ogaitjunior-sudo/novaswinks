@@ -574,6 +574,15 @@
     background: rgba(4, 7, 18, 0.68);
     color: white;
     backdrop-filter: blur(12px);
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .wink-card-favorite-button:hover,
+  .wink-card-favorite-button[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--wink-accent) 62%, rgba(255, 255, 255, 0.38));
+    background: color-mix(in srgb, var(--wink-accent) 28%, rgba(4, 7, 18, 0.78));
+    color: #fff1b4;
+    transform: scale(1.04);
   }
 
   .wink-card-sound-badge {

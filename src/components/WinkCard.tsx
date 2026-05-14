@@ -32,6 +32,8 @@ type WinkCardProps = {
   lottiePlaybackSpeed?: number;
   hasSound?: boolean;
   audioUrl?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onOpenPreview?: () => void;
   description?: string;
   eyebrow?: string;
@@ -60,6 +62,8 @@ export const WinkCard = ({
   lottiePlaybackSpeed,
   hasSound = false,
   audioUrl,
+  isFavorite = false,
+  onToggleFavorite,
   onOpenPreview,
   accentColor,
   className,
@@ -172,8 +176,10 @@ export const WinkCard = ({
           type="button"
           className="wink-card-favorite-button"
           aria-label={`Favorite ${title}`}
+          aria-pressed={isFavorite}
+          onClick={onToggleFavorite}
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
         </button>
 
         <div className="absolute inset-0 flex items-center justify-center">
