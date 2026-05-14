@@ -29,7 +29,7 @@ const sourceCandidates = {
   fireworks: ["fireworks.mp3", "fireworks.ogg"],
   cash: ["cash-register.mp3", "cash-register.ogg"],
   chimes: ["windchimes.mp3", "windchimes.ogg"],
-  wind: ["howling-wind.mp3", "howling-wind.ogg"],
+  wind: ["howling-wind.mp3", "howling-wind.ogg", "windchimes.mp3"],
   bell: ["bell.wav", "bell.mp3"],
 };
 
@@ -121,12 +121,14 @@ const run = (command, args) => new Promise((resolve, reject) => {
 
 const renderFromRealSource = async ({ sourcePath, id, outputPath }) => {
   const seed = hashId(id);
-  const start = ((seed % 40) / 10).toFixed(1);
   const profile = soundProfile(id);
   const volume = profile === "applause" ? "0.82" : profile === "laughter" ? "0.78" : "0.74";
   const filter = [
     "aresample=44100",
     "aformat=sample_fmts=s16:channel_layouts=stereo",
+    `aloop=loop=-1:size=${sampleRate * durationSeconds}`,
+    `atrim=0:${durationSeconds}`,
+    "asetpts=N/SR/TB",
     `volume=${volume}`,
     "afade=t=in:st=0:d=0.12",
     "afade=t=out:st=6.4:d=1.6",
@@ -138,12 +140,6 @@ const renderFromRealSource = async ({ sourcePath, id, outputPath }) => {
     "-hide_banner",
     "-loglevel",
     "error",
-    "-stream_loop",
-    "-1",
-    "-ss",
-    start,
-    "-t",
-    `${durationSeconds}`,
     "-i",
     sourcePath,
     "-filter:a",
