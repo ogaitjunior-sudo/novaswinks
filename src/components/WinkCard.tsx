@@ -31,6 +31,7 @@ type WinkCardProps = {
   lottieStartAtProgress?: number;
   lottiePlaybackSpeed?: number;
   hasSound?: boolean;
+  audioUrl?: string;
   onOpenPreview?: () => void;
   description?: string;
   eyebrow?: string;
@@ -58,6 +59,7 @@ export const WinkCard = ({
   lottieStartAtProgress,
   lottiePlaybackSpeed,
   hasSound = false,
+  audioUrl,
   onOpenPreview,
   accentColor,
   className,
@@ -210,13 +212,21 @@ export const WinkCard = ({
         </div>
       </div>
 
-      <div className="wink-card-footer grid grid-cols-2 gap-2 p-3">
+      <div className={cn("wink-card-footer grid gap-2 p-3", audioUrl ? "grid-cols-3" : "grid-cols-2")}>
         <Button asChild variant="outline" className="wink-card-download-button h-10 rounded-[10px]">
           <a href={downloadUrl} download>
             <Download className="h-4 w-4" />
             {downloadLabel}
           </a>
         </Button>
+        {audioUrl ? (
+          <Button asChild variant="outline" className="wink-card-audio-download-button h-10 rounded-[10px]">
+            <a href={audioUrl} download>
+              <Download className="h-4 w-4" />
+              MP3
+            </a>
+          </Button>
+        ) : null}
         <Button className="wink-card-preview-button h-10 rounded-[10px]" onClick={handleOpenPreview}>
           <Play className="h-4 w-4" />
           PREVIEW

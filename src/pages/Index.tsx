@@ -368,6 +368,7 @@ const Index = () => {
                         lottieStartAtProgress={0}
                         lottiePlaybackSpeed={getFullscreenPreviewSpeed(asset)}
                         hasSound={Boolean(asset.audioPath)}
+                        audioUrl={asset.audioPath}
                         downloadUrl={asset.filePath}
                         downloadLabel="BAIXAR JSON"
                         accentColor={asset.accent}

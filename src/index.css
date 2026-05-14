@@ -689,6 +689,7 @@
   }
 
   .wink-card-download-button,
+  .wink-card-audio-download-button,
   .wink-card-preview-button {
     width: 100%;
     font-family: "Rajdhani", "Manrope", "Segoe UI", sans-serif;
@@ -701,6 +702,7 @@
   }
 
   .wink-card-download-button *,
+  .wink-card-audio-download-button *,
   .wink-card-preview-button * {
     font-family: inherit;
     font-weight: inherit;
@@ -715,6 +717,20 @@
 
   .wink-card-download-button:hover {
     background: linear-gradient(90deg, rgba(118, 65, 255, 0.96), rgba(65, 88, 203, 0.88));
+    color: white;
+  }
+
+  .wink-card-audio-download-button {
+    border-color: color-mix(in srgb, var(--wink-accent) 42%, rgba(255, 255, 255, 0.2));
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--wink-accent) 36%, rgba(10, 14, 30, 0.92)), rgba(8, 12, 28, 0.86));
+    color: white;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--wink-accent) 12%, transparent);
+  }
+
+  .wink-card-audio-download-button:hover {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--wink-accent) 48%, rgba(10, 14, 30, 0.96)), rgba(16, 20, 42, 0.92));
     color: white;
   }
 
