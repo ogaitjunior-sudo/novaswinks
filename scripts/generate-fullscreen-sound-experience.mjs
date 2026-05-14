@@ -6,6 +6,7 @@ import ffmpegPath from "ffmpeg-static";
 const rootDir = process.cwd();
 const winkDir = path.join(rootDir, "public", "winks", "fullscreen");
 const previewDir = path.join(rootDir, "public", "previews", "fullscreen");
+const sourceDir = path.join(rootDir, "public", "audio", "source-real");
 const audioDir = path.join(rootDir, "public", "audio", "fullscreen");
 const sampleRate = 44100;
 const durationSeconds = 8;
@@ -22,110 +23,73 @@ const skipSpecialSoundIds = new Set([
   "trh-full-bloom-burst-finale",
 ]);
 
-const clamp = (value, min = -1, max = 1) => Math.max(min, Math.min(max, value));
+const sourceCandidates = {
+  applause: ["applause.ogg"],
+  laughter: ["laughter.ogg"],
+  fireworks: ["fireworks.mp3", "fireworks.ogg"],
+  cash: ["cash-register.mp3", "cash-register.ogg"],
+  chimes: ["windchimes.mp3", "windchimes.ogg"],
+  wind: ["howling-wind.mp3", "howling-wind.ogg"],
+  bell: ["bell.wav", "bell.mp3"],
+};
 
-const hashId = (id) => Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+const sourcePathFor = async (profile) => {
+  for (const fileName of sourceCandidates[profile] ?? []) {
+    const candidate = path.join(sourceDir, fileName);
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return null;
+};
 
 const soundProfile = (id) => {
   const lower = id.toLowerCase();
-  if (lower.includes("firework") || lower.includes("explosion") || lower.includes("blast") || lower.includes("detonation")) {
-    return { base: 140, color: 0.96, hit: 0.72, shimmer: 0.08, ambience: 0.07, boom: true };
-  }
-  if (lower.includes("bingo") || lower.includes("win") || lower.includes("jackpot") || lower.includes("premium")) {
-    return { base: 392, color: 0.72, hit: 0.42, shimmer: 0.12, ambience: 0.03 };
-  }
-  if (lower.includes("heart") || lower.includes("kiss") || lower.includes("thanks") || lower.includes("friend")) {
-    return { base: 440, color: 0.54, hit: 0.28, shimmer: 0.085, ambience: 0.045 };
-  }
-  if (lower.includes("christmas") || lower.includes("snow") || lower.includes("birthday")) {
-    return { base: 523.25, color: 0.58, hit: 0.32, shimmer: 0.095, ambience: 0.045 };
-  }
-  if (lower.includes("neon") || lower.includes("electric") || lower.includes("energy")) {
-    return { base: 261.63, color: 0.68, hit: 0.36, shimmer: 0.11, ambience: 0.04 };
-  }
-  return { base: 369.99, color: 0.62, hit: 0.34, shimmer: 0.1, ambience: 0.04 };
+  if (lower.includes("applause") || lower.includes("clap") || lower.includes("ovation") || lower.includes("bravo")) return "applause";
+  if (lower.includes("laugh") || lower.includes("lol") || lower.includes("haha") || lower.includes("rofl") || lower.includes("troll") || lower.includes("omg")) return "laughter";
+  if (lower.includes("firework") || lower.includes("explosion") || lower.includes("blast") || lower.includes("detonation")) return "fireworks";
+  if (lower.includes("cash") || lower.includes("money") || lower.includes("win") || lower.includes("jackpot") || lower.includes("casino") || lower.includes("bingo")) return "cash";
+  if (lower.includes("christmas") || lower.includes("bell") || lower.includes("birthday") || lower.includes("thanks")) return "bell";
+  if (lower.includes("snow") || lower.includes("storm") || lower.includes("wind") || lower.includes("neon") || lower.includes("energy")) return "wind";
+  return "chimes";
 };
 
-const envelope = (time) => {
-  const intro = Math.min(1, time / 1.9);
-  const fade = time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1;
-  const hero = Math.exp(-((time - 3) ** 2) / 0.22);
-  const sustain = time > 3 && time < 6 ? 0.22 : 0;
-  return Math.min(1, ((0.18 * intro) + (0.36 * hero) + sustain) * fade);
-};
+const clamp = (value, min = -1, max = 1) => Math.max(min, Math.min(max, value));
+const hashId = (id) => Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
 
-const smoothNoise = (seed, time) => (
-  Math.sin(time * 1.3 + seed) +
-  Math.sin(time * 2.1 + seed * 1.7) * 0.6 +
-  Math.sin(time * 3.8 + seed * 2.3) * 0.32
-) / 1.92;
-
-const burstNoise = (seed, time) => (
-  Math.sin(time * 58 + seed) +
-  Math.sin(time * 113 + seed * 1.37) * 0.72 +
-  Math.sin(time * 251 + seed * 2.1) * 0.44 +
-  Math.sin(time * 487 + seed * 3.4) * 0.22
-) / 2.38;
-
-const boomAt = (time, hitTime, seed, strength) => {
-  if (time < hitTime) return 0;
-  const age = time - hitTime;
-  const thump = Math.sin(age * Math.PI * 2 * (72 - Math.min(40, age * 18))) * Math.exp(-age * 3.4) * strength;
-  const crack = burstNoise(seed, age) * Math.exp(-age * 8.5) * strength * 0.72;
-  const tail = smoothNoise(seed * 0.31, age) * Math.exp(-age * 1.15) * strength * 0.42;
-  return thump + crack + tail;
-};
-
-const makeWav = (id) => {
-  const profile = soundProfile(id);
+const makeFallbackWav = (id) => {
+  const lower = id.toLowerCase();
   const seed = hashId(id);
-  const chordShift = (seed % 7) * 6;
-  const frequencies = [
-    profile.base + chordShift,
-    (profile.base * 1.5) + chordShift,
-    (profile.base * 2) + chordShift,
-  ];
+  const base = lower.includes("firework") || lower.includes("explosion") || lower.includes("blast") ? 120 : 392 + (seed % 80);
   const sampleCount = Math.floor(sampleRate * durationSeconds);
   const data = Buffer.alloc(sampleCount * 4);
 
   for (let sample = 0; sample < sampleCount; sample += 1) {
     const time = sample / sampleRate;
-    let left = 0;
-    let right = 0;
+    const fade = time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1;
+    const hero = Math.exp(-((time - 3) ** 2) / 0.22);
+    const intro = Math.min(1, time / 1.7);
+    const env = Math.min(1, (0.16 * intro) + (0.34 * hero) + (time > 3 && time < 6 ? 0.2 : 0)) * fade;
+    let left = Math.sin(time * Math.PI * 2 * base) * 0.1;
+    let right = Math.sin(time * Math.PI * 2 * (base * 1.5)) * 0.08;
 
-    for (let index = 0; index < frequencies.length; index += 1) {
-      const frequency = frequencies[index];
-      const drift = 1 + Math.sin(time * (0.8 + index * 0.18) + seed) * 0.004;
-      const tone = Math.sin(time * Math.PI * 2 * frequency * drift) * (0.115 / (index + 1));
-      const overtone = Math.sin(time * Math.PI * 2 * frequency * 2.01) * (0.018 / (index + 1));
-      const pan = index % 2 === 0 ? 0.62 : 0.38;
-      left += (tone + overtone) * pan;
-      right += (tone + overtone) * (1 - pan);
+    if (lower.includes("firework") || lower.includes("explosion") || lower.includes("blast")) {
+      for (const hitTime of [1.45, 2.35, 3, 3.62, 4.45, 5.18]) {
+        if (time >= hitTime) {
+          const age = time - hitTime;
+          const boom = Math.sin(age * Math.PI * 2 * (68 - Math.min(36, age * 18))) * Math.exp(-age * 3.3);
+          const crack = (Math.sin(age * 181 + seed) + Math.sin(age * 431 + seed * 0.7)) * Math.exp(-age * 8);
+          left += boom * 0.28 + crack * 0.08;
+          right += boom * 0.22 + crack * 0.07;
+        }
+      }
     }
 
-    const softAir = smoothNoise(seed * 0.017, time) * profile.ambience;
-    const shimmer = Math.sin(time * Math.PI * 2 * (1050 + (seed % 260) + Math.sin(time * 2.4) * 44)) * profile.shimmer * 0.16;
-    const hitTimes = [0.45, 1.15, 1.85, 2.45, 3, 3.32, 4.25, 5.3];
-    const sparkles = hitTimes.reduce((sum, hitTime, index) => {
-      const decay = Math.exp(-Math.max(0, time - hitTime) * 6.2);
-      return time >= hitTime
-        ? sum + Math.sin(time * Math.PI * 2 * (780 + (seed % 180) + index * 95)) * decay * profile.hit * 0.16
-        : sum;
-    }, 0);
-    const booms = profile.boom
-      ? [
-        [1.45, 0.42],
-        [2.35, 0.34],
-        [3, 0.92],
-        [3.62, 0.58],
-        [4.45, 0.5],
-        [5.18, 0.36],
-      ].reduce((sum, [hitTime, strength], index) => sum + boomAt(time, hitTime, seed + index * 17, strength), 0)
-      : 0;
-
-    const body = envelope(time) * profile.color * 0.58;
-    left = clamp(((left + softAir + shimmer + sparkles) * body) + (booms * 0.42 * (time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1)));
-    right = clamp(((right + (softAir * 0.86) - (shimmer * 0.68) + (sparkles * 0.78)) * body) + (booms * 0.34 * (time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1)));
+    left = clamp(left * env * 0.72);
+    right = clamp(right * env * 0.72);
     data.writeInt16LE(Math.round(left * 32767), sample * 4);
     data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
   }
@@ -147,15 +111,57 @@ const makeWav = (id) => {
   return Buffer.concat([header, data]);
 };
 
-const runFfmpeg = (input, output) => new Promise((resolve, reject) => {
-  const child = spawn(ffmpegPath, ["-y", "-hide_banner", "-loglevel", "error", "-i", input, "-codec:a", "libmp3lame", "-b:a", "128k", output], {
-    stdio: "inherit",
-  });
+const run = (command, args) => new Promise((resolve, reject) => {
+  const child = spawn(command, args, { stdio: "inherit" });
   child.on("exit", (code) => {
     if (code === 0) resolve();
-    else reject(new Error(`ffmpeg exited with ${code}`));
+    else reject(new Error(`${command} exited with ${code}`));
   });
 });
+
+const renderFromRealSource = async ({ sourcePath, id, outputPath }) => {
+  const seed = hashId(id);
+  const start = ((seed % 40) / 10).toFixed(1);
+  const profile = soundProfile(id);
+  const volume = profile === "applause" ? "0.82" : profile === "laughter" ? "0.78" : "0.74";
+  const filter = [
+    "aresample=44100",
+    "aformat=sample_fmts=s16:channel_layouts=stereo",
+    `volume=${volume}`,
+    "afade=t=in:st=0:d=0.12",
+    "afade=t=out:st=6.4:d=1.6",
+    "alimiter=limit=0.92",
+  ].join(",");
+
+  await run(ffmpegPath, [
+    "-y",
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-stream_loop",
+    "-1",
+    "-ss",
+    start,
+    "-t",
+    `${durationSeconds}`,
+    "-i",
+    sourcePath,
+    "-filter:a",
+    filter,
+    "-codec:a",
+    "libmp3lame",
+    "-b:a",
+    "128k",
+    outputPath,
+  ]);
+};
+
+const renderFallback = async ({ id, outputPath }) => {
+  const wavPath = outputPath.replace(".mp3", ".wav");
+  await fs.writeFile(wavPath, makeFallbackWav(id));
+  await run(ffmpegPath, ["-y", "-hide_banner", "-loglevel", "error", "-i", wavPath, "-codec:a", "libmp3lame", "-b:a", "128k", outputPath]);
+  await fs.rm(wavPath, { force: true });
+};
 
 await fs.mkdir(audioDir, { recursive: true });
 
@@ -166,15 +172,24 @@ const originalIds = winkFiles
   .filter((id) => !id.endsWith("-sound") && !skipSpecialSoundIds.has(id))
   .sort();
 
+let realCount = 0;
+let fallbackCount = 0;
+
 for (const id of originalIds) {
   await fs.copyFile(path.join(winkDir, `${id}.json`), path.join(winkDir, `${id}-sound.json`));
   await fs.copyFile(path.join(previewDir, `${id}.png`), path.join(previewDir, `${id}-sound.png`));
 
-  const wavPath = path.join(audioDir, `${id}-sound.wav`);
-  const mp3Path = path.join(audioDir, `${id}-sound.mp3`);
-  await fs.writeFile(wavPath, makeWav(id));
-  await runFfmpeg(wavPath, mp3Path);
-  await fs.rm(wavPath, { force: true });
+  const outputPath = path.join(audioDir, `${id}-sound.mp3`);
+  const profile = soundProfile(id);
+  const sourcePath = await sourcePathFor(profile);
+
+  if (sourcePath) {
+    await renderFromRealSource({ sourcePath, id, outputPath });
+    realCount += 1;
+  } else {
+    await renderFallback({ id, outputPath });
+    fallbackCount += 1;
+  }
 }
 
-console.log(`Generated ${originalIds.length} fullscreen sound experience copies.`);
+console.log(`Generated ${originalIds.length} fullscreen sound experience copies (${realCount} real-source, ${fallbackCount} fallback).`);
