@@ -29,7 +29,7 @@ const hashId = (id) => Array.from(id).reduce((sum, char) => sum + char.charCodeA
 const soundProfile = (id) => {
   const lower = id.toLowerCase();
   if (lower.includes("firework") || lower.includes("explosion") || lower.includes("blast") || lower.includes("detonation")) {
-    return { base: 330, color: 0.8, hit: 0.46, shimmer: 0.13, ambience: 0.035 };
+    return { base: 140, color: 0.96, hit: 0.72, shimmer: 0.08, ambience: 0.07, boom: true };
   }
   if (lower.includes("bingo") || lower.includes("win") || lower.includes("jackpot") || lower.includes("premium")) {
     return { base: 392, color: 0.72, hit: 0.42, shimmer: 0.12, ambience: 0.03 };
@@ -59,6 +59,22 @@ const smoothNoise = (seed, time) => (
   Math.sin(time * 2.1 + seed * 1.7) * 0.6 +
   Math.sin(time * 3.8 + seed * 2.3) * 0.32
 ) / 1.92;
+
+const burstNoise = (seed, time) => (
+  Math.sin(time * 58 + seed) +
+  Math.sin(time * 113 + seed * 1.37) * 0.72 +
+  Math.sin(time * 251 + seed * 2.1) * 0.44 +
+  Math.sin(time * 487 + seed * 3.4) * 0.22
+) / 2.38;
+
+const boomAt = (time, hitTime, seed, strength) => {
+  if (time < hitTime) return 0;
+  const age = time - hitTime;
+  const thump = Math.sin(age * Math.PI * 2 * (72 - Math.min(40, age * 18))) * Math.exp(-age * 3.4) * strength;
+  const crack = burstNoise(seed, age) * Math.exp(-age * 8.5) * strength * 0.72;
+  const tail = smoothNoise(seed * 0.31, age) * Math.exp(-age * 1.15) * strength * 0.42;
+  return thump + crack + tail;
+};
 
 const makeWav = (id) => {
   const profile = soundProfile(id);
@@ -96,10 +112,20 @@ const makeWav = (id) => {
         ? sum + Math.sin(time * Math.PI * 2 * (780 + (seed % 180) + index * 95)) * decay * profile.hit * 0.16
         : sum;
     }, 0);
+    const booms = profile.boom
+      ? [
+        [1.45, 0.42],
+        [2.35, 0.34],
+        [3, 0.92],
+        [3.62, 0.58],
+        [4.45, 0.5],
+        [5.18, 0.36],
+      ].reduce((sum, [hitTime, strength], index) => sum + boomAt(time, hitTime, seed + index * 17, strength), 0)
+      : 0;
 
     const body = envelope(time) * profile.color * 0.58;
-    left = clamp((left + softAir + shimmer + sparkles) * body);
-    right = clamp((right + (softAir * 0.86) - (shimmer * 0.68) + (sparkles * 0.78)) * body);
+    left = clamp(((left + softAir + shimmer + sparkles) * body) + (booms * 0.42 * (time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1)));
+    right = clamp(((right + (softAir * 0.86) - (shimmer * 0.68) + (sparkles * 0.78)) * body) + (booms * 0.34 * (time > 6 ? Math.max(0, 1 - ((time - 6) / 2)) : 1)));
     data.writeInt16LE(Math.round(left * 32767), sample * 4);
     data.writeInt16LE(Math.round(right * 32767), (sample * 4) + 2);
   }
