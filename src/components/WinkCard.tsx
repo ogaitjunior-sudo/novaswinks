@@ -177,12 +177,16 @@ export const WinkCard = ({
           className="wink-card-favorite-button"
           aria-label={`Favorite ${title}`}
           aria-pressed={isFavorite}
-          onClick={onToggleFavorite}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleFavorite?.();
+          }}
         >
           <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
         </button>
 
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="wink-card-play-layer absolute inset-0 flex items-center justify-center">
           <button
             type="button"
             onClick={handleRestartPreview}

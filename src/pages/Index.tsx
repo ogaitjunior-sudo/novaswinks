@@ -49,6 +49,13 @@ const withCacheVersion = (url: string, cacheVersion?: string) => {
   return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`;
 };
 
+const scrollToFullscreenWinks = () => {
+  const fullscreenSection = document.querySelector("#fullscreen-winks");
+  if (fullscreenSection && "scrollIntoView" in fullscreenSection) {
+    fullscreenSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+};
+
 const sidebarItems = [
   { label: "WINK STUDIO", icon: Star, href: "#" },
   { label: "CHAT WINKS", icon: MessageSquare, href: "#chat-winks" },
@@ -185,7 +192,7 @@ const Index = () => {
                   if (label === "FAVORITES") {
                     event.preventDefault();
                     setShowFavoritesOnly(true);
-                    document.querySelector("#fullscreen-winks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    scrollToFullscreenWinks();
                     return;
                   }
 
@@ -196,7 +203,7 @@ const Index = () => {
 
                   event.preventDefault();
                   setSelectedFullscreenCategory(soundOnly ? "sound" : fullscreenCategory);
-                  document.querySelector("#fullscreen-winks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  scrollToFullscreenWinks();
                 }}
               >
                 <Icon className="h-5 w-5" />

@@ -53,4 +53,17 @@ describe("Index page", () => {
       expect(fullscreenQueries.getAllByText(asset.name).length).toBeGreaterThan(0);
     }
   }, 20000);
+
+  it("toggles favorites from wink cards", () => {
+    render(<Index />);
+
+    const favoriteButton = screen.getByRole("button", { name: `Favorite ${chatWinks[0].name}` });
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(favoriteButton);
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("link", { name: /FAVORITES/i }));
+    expect(screen.getAllByText(chatWinks[0].name).length).toBeGreaterThan(0);
+  }, 20000);
 });
