@@ -1203,38 +1203,37 @@ const buildOrbitBallLayers = (startIndex, options) => {
     const x2 = center[0] + (Math.cos(angle + 2.5) * endRadius);
     const y2 = center[1] + (Math.sin(angle + 2.5) * endRadius * 0.76);
 
-    layers.push(
-      buildLayer({
-        index: startIndex + layers.length,
-        name: `Orbit Ball ${seed}-${idx}`,
-        shapes: [bingoBallGroup("Bingo Ball", size, body.color, body.digit)],
-        positionFrames: [
-          { t: inFrame, s: [x1, y1, 0] },
-          { t: midFrame, s: [xMid, yMid, 0] },
-          { t: endFrame, s: [x2, y2, 0] },
-        ],
-        scaleFrames: [
-          { t: inFrame, s: [44, 44, 100] },
-          { t: popFrame, s: [142, 142, 100] },
-          { t: midFrame, s: [104, 104, 100] },
-          { t: endFrame, s: [160, 160, 100] },
-        ],
-        opacityFrames: [
-          { t: 0, s: [0] },
-          { t: inFrame, s: [0] },
-          { t: popFrame, s: [100] },
-          { t: clampFrame(endFrame - 10), s: [96] },
-          { t: endFrame, s: [0] },
-        ],
-        rotationFrames: [
-          { t: inFrame, s: [0] },
-          { t: midFrame, s: [132] },
-          { t: endFrame, s: [330] },
-        ],
-        inFrame,
-        outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
-      }),
-    );
+    appendBingoBallStack(layers, startIndex + layers.length, {
+      name: `Orbit Ball ${seed}-${idx}`,
+      radius: size,
+      color: body.color,
+      label: body.digit,
+      positionFrames: [
+        { t: inFrame, s: [x1, y1, 0] },
+        { t: midFrame, s: [xMid, yMid, 0] },
+        { t: endFrame, s: [x2, y2, 0] },
+      ],
+      scaleFrames: [
+        { t: inFrame, s: [44, 44, 100] },
+        { t: popFrame, s: [142, 142, 100] },
+        { t: midFrame, s: [104, 104, 100] },
+        { t: endFrame, s: [160, 160, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: inFrame, s: [0] },
+        { t: popFrame, s: [100] },
+        { t: clampFrame(endFrame - 10), s: [96] },
+        { t: endFrame, s: [0] },
+      ],
+      rotationFrames: [
+        { t: inFrame, s: [0] },
+        { t: midFrame, s: [132] },
+        { t: endFrame, s: [330] },
+      ],
+      inFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+    });
   }
 
   return layers;
@@ -1335,38 +1334,37 @@ const buildHeroBallRushLayers = (startIndex, configs) => {
     const midFrame = config.midFrame ?? clampFrame(config.startFrame + 42);
     const endFrame = config.endFrame ?? clampFrame(config.startFrame + 126);
 
-    layers.push(
-      buildLayer({
-        index: startIndex + layers.length,
-        name: `Hero Ball ${idx}`,
-        shapes: [bingoBallGroup("Hero Ball", config.radius, config.color, config.digit)],
-        positionFrames: [
-          { t: config.startFrame, s: [config.from[0], config.from[1], 0] },
-          { t: midFrame, s: [config.mid[0], config.mid[1], 0] },
-          { t: endFrame, s: [config.to[0], config.to[1], 0] },
-        ],
-        scaleFrames: [
-          { t: config.startFrame, s: [46, 46, 100] },
-          { t: clampFrame(config.startFrame + 9), s: [142, 142, 100] },
-          { t: midFrame, s: [108, 108, 100] },
-          { t: endFrame, s: [160, 160, 100] },
-        ],
-        opacityFrames: [
-          { t: 0, s: [0] },
-          { t: config.startFrame, s: [0] },
-          { t: clampFrame(config.startFrame + 6), s: [100] },
-          { t: clampFrame(endFrame - 14), s: [94] },
-          { t: endFrame, s: [0] },
-        ],
-        rotationFrames: [
-          { t: config.startFrame, s: [config.rotationStart ?? -48] },
-          { t: midFrame, s: [config.rotationMid ?? 108] },
-          { t: endFrame, s: [config.rotationEnd ?? 246] },
-        ],
-        inFrame: config.startFrame,
-        outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
-      }),
-    );
+    appendBingoBallStack(layers, startIndex + layers.length, {
+      name: `Hero Ball ${idx}`,
+      radius: config.radius,
+      color: config.color,
+      label: config.digit,
+      positionFrames: [
+        { t: config.startFrame, s: [config.from[0], config.from[1], 0] },
+        { t: midFrame, s: [config.mid[0], config.mid[1], 0] },
+        { t: endFrame, s: [config.to[0], config.to[1], 0] },
+      ],
+      scaleFrames: [
+        { t: config.startFrame, s: [46, 46, 100] },
+        { t: clampFrame(config.startFrame + 9), s: [142, 142, 100] },
+        { t: midFrame, s: [108, 108, 100] },
+        { t: endFrame, s: [160, 160, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: config.startFrame, s: [0] },
+        { t: clampFrame(config.startFrame + 6), s: [100] },
+        { t: clampFrame(endFrame - 14), s: [94] },
+        { t: endFrame, s: [0] },
+      ],
+      rotationFrames: [
+        { t: config.startFrame, s: [config.rotationStart ?? -48] },
+        { t: midFrame, s: [config.rotationMid ?? 108] },
+        { t: endFrame, s: [config.rotationEnd ?? 246] },
+      ],
+      inFrame: config.startFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+    });
   }
 
   return layers;
@@ -3612,42 +3610,40 @@ const buildExplodingBingoBalls = () => {
     const burst = [center[0] + config.target[0], center[1] + config.target[1], 0];
     const settle = [center[0] + (config.target[0] * 0.92), center[1] + (config.target[1] * 0.92), 0];
 
-    layers.push(
-      buildLayer({
-        index: nextIndex,
-        name: `Bingo Cluster Ball ${index + 1}`,
-        shapes: [bingoBallGroup("Bingo Cluster Ball Shape", config.radius, config.ball.color, config.ball.digit)],
-        positionFrames: [
-          { t: 0, s: start },
-          { t: 8, s: compressed },
-          { t: 20, s: burst },
-          { t: 42, s: settle },
-        ],
-        scaleFrames: [
-          { t: 0, s: [98, 98, 100] },
-          { t: 8, s: [74, 74, 100] },
-          { t: 20, s: [138, 138, 100] },
-          { t: 34, s: [102, 102, 100] },
-          { t: 42, s: [108, 108, 100] },
-          { t: 150, s: [104, 104, 100] },
-        ],
-        opacityFrames: [
-          { t: 0, s: [100] },
-          { t: 132, s: [100] },
-          { t: 168, s: [38] },
-          { t: 179, s: [0] },
-        ],
-        rotationFrames: [
-          { t: 0, s: [config.rotation[0]] },
-          { t: 8, s: [config.rotation[1]] },
-          { t: 20, s: [config.rotation[2]] },
-          { t: 42, s: [config.rotation[2] + 42] },
-        ],
-        inFrame: 0,
-        outFrame: DURATION_FRAMES,
-      }),
-    );
-    nextIndex += 1;
+    nextIndex = appendBingoBallStack(layers, nextIndex, {
+      name: `Bingo Cluster Ball ${index + 1}`,
+      radius: config.radius,
+      color: config.ball.color,
+      label: config.ball.digit,
+      positionFrames: [
+        { t: 0, s: start },
+        { t: 8, s: compressed },
+        { t: 20, s: burst },
+        { t: 42, s: settle },
+      ],
+      scaleFrames: [
+        { t: 0, s: [98, 98, 100] },
+        { t: 8, s: [74, 74, 100] },
+        { t: 20, s: [138, 138, 100] },
+        { t: 34, s: [102, 102, 100] },
+        { t: 42, s: [108, 108, 100] },
+        { t: 150, s: [104, 104, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [100] },
+        { t: 132, s: [100] },
+        { t: 168, s: [38] },
+        { t: 179, s: [0] },
+      ],
+      rotationFrames: [
+        { t: 0, s: [config.rotation[0]] },
+        { t: 8, s: [config.rotation[1]] },
+        { t: 20, s: [config.rotation[2]] },
+        { t: 42, s: [config.rotation[2] + 42] },
+      ],
+      inFrame: 0,
+      outFrame: DURATION_FRAMES,
+    });
   }
 
   const impactStreaks = buildRadialBurstLayers(nextIndex, {
@@ -3876,6 +3872,63 @@ const bingoBallLabelDiscLayer = ({
   inFrame,
   outFrame,
 });
+
+const appendBingoBallStack = (layers, index, {
+  name,
+  radius,
+  color,
+  label,
+  positionFrames,
+  scaleFrames,
+  opacityFrames,
+  rotationFrames,
+  inFrame = 0,
+  outFrame = DURATION_FRAMES,
+  fontSize = radius * 0.78,
+  ballShape,
+}) => {
+  const cleanLabel = String(label ?? "");
+  layers.push(buildTextLayer({
+    index,
+    name: `${name} Label`,
+    text: cleanLabel,
+    fontSize,
+    fillColor: rgb("#151515"),
+    strokeColor: rgb("#ffffff"),
+    strokeWidth: 2,
+    positionFrames,
+    scaleFrames,
+    opacityFrames,
+    inFrame,
+    outFrame,
+    textBoxYOffset: -0.5,
+    textBoxHeight: 1.12,
+    tracking: 0,
+  }));
+  layers.push(bingoBallLabelDiscLayer({
+    index: index + 1,
+    name: `${name} White Label Disc`,
+    radius,
+    accentColor: color,
+    positionFrames,
+    scaleFrames,
+    opacityFrames,
+    inFrame,
+    outFrame,
+  }));
+  layers.push(buildLayer({
+    index: index + 2,
+    name,
+    shapes: [ballShape ?? bingoBallGroup(`${name} Shape`, radius, color)],
+    positionFrames,
+    scaleFrames,
+    opacityFrames,
+    rotationFrames,
+    inFrame,
+    outFrame,
+  }));
+  return index + 3;
+};
 
 const buildBingoBallMotionLayers = (startIndex, configs) => {
   const layers = [];
@@ -7797,25 +7850,59 @@ const addBingoHeroLayer = (layers, nextIndex, options = {}) => {
   return nextIndex + 1;
 };
 
-const buildCountdownBallBurstLayers = (startIndex, seed, startFrame, count = 18, center = [WIDTH / 2, HEIGHT / 2 + 60]) =>
-  buildRadialBurstLayers(startIndex, {
-    seed,
-    count,
-    center,
-    minRadius: 340,
-    maxRadius: 940,
-    startFrame,
-    duration: 78,
-    palette: countdownBallPalette.map((ball) => ball.color),
-    sizeRange: [28, 58],
-    scaleFrom: 36,
-    scaleTo: 152,
-    travelYScale: 0.62,
-    shapeFactory: ({ size, index }) => {
-      const ball = countdownBallPalette[index % countdownBallPalette.length];
-      return [bingoBallGroup(`Countdown Ball ${index}`, size, ball.color, ball.digit)];
-    },
-  });
+const buildCountdownBallBurstLayers = (startIndex, seed, startFrame, count = 18, center = [WIDTH / 2, HEIGHT / 2 + 60], fixedBall = null) => {
+  const rng = createRng(seed);
+  const layers = [];
+
+  for (let idx = 0; idx < count; idx += 1) {
+    const angle = rng() * Math.PI * 2;
+    const radius = 340 + (rng() * 600);
+    const size = fixedBall?.radius ?? (28 + (rng() * 30));
+    const ball = fixedBall ?? countdownBallPalette[idx % countdownBallPalette.length];
+    const inFrame = clampFrame(startFrame + Math.floor(rng() * 20));
+    const popFrame = clampFrame(inFrame + 8);
+    const midFrame = clampFrame(inFrame + 32 + Math.floor(rng() * 12));
+    const endFrame = clampFrame(inFrame + 78);
+    const xMid = center[0] + (Math.cos(angle) * radius * 0.58);
+    const yMid = center[1] + (Math.sin(angle) * radius * 0.36);
+    const xEnd = center[0] + (Math.cos(angle) * radius);
+    const yEnd = center[1] + (Math.sin(angle) * radius * 0.62);
+
+    appendBingoBallStack(layers, startIndex + layers.length, {
+      name: `Countdown Ball ${seed}-${idx}`,
+      radius: size,
+      color: ball.color,
+      label: ball.digit,
+      positionFrames: [
+        { t: inFrame, s: [center[0], center[1], 0] },
+        { t: midFrame, s: [xMid, yMid, 0] },
+        { t: endFrame, s: [xEnd, yEnd, 0] },
+      ],
+      scaleFrames: [
+        { t: inFrame, s: [36, 36, 100] },
+        { t: popFrame, s: [132, 132, 100] },
+        { t: midFrame, s: [96, 96, 100] },
+        { t: endFrame, s: [152, 152, 100] },
+      ],
+      opacityFrames: [
+        { t: 0, s: [0] },
+        { t: inFrame, s: [0] },
+        { t: popFrame, s: [100] },
+        { t: clampFrame(endFrame - 18), s: [86] },
+        { t: endFrame, s: [0] },
+      ],
+      rotationFrames: [
+        { t: inFrame, s: [0] },
+        { t: midFrame, s: [130 + (idx * 9)] },
+        { t: endFrame, s: [300 + (idx * 12)] },
+      ],
+      inFrame,
+      outFrame: Math.min(DURATION_FRAMES, endFrame + 1),
+    });
+  }
+
+  return layers;
+};
 
 const buildCountdownSparkLayers = (startIndex, seed, startFrame, count = 28, center = [WIDTH / 2, HEIGHT / 2]) =>
   buildRadialBurstLayers(startIndex, {
@@ -7874,21 +7961,29 @@ const buildBingoLetterBuild = () => {
   let nextIndex = 1;
   const layers = [];
   const letters = ["B", "I", "N", "G", "O"];
+  const letterWindows = [
+    [0, 26],
+    [30, 56],
+    [60, 86],
+    [90, 116],
+    [120, 146],
+  ];
   letters.forEach((letter, index) => {
-    nextIndex = addCountdownNumberLayer(layers, nextIndex, letter, index * 18, 48 + (index * 18), {
+    const [start, end] = letterWindows[index];
+    nextIndex = addCountdownNumberLayer(layers, nextIndex, letter, start, end, {
       fontSize: letter === "I" ? 380 : 330,
       color: index % 2 === 0 ? countdownPalette.goldLight : countdownPalette.white,
       accent: [countdownPalette.gold, countdownPalette.blue, countdownPalette.pink][index % 3],
       center: [WIDTH / 2, HEIGHT / 2 - 10],
       strokeWidth: 7,
     });
-    nextIndex = addCountdownImpactLayers(layers, nextIndex, 820 + index, index * 18, [WIDTH / 2, HEIGHT / 2]);
+    nextIndex = addCountdownImpactLayers(layers, nextIndex, 820 + index, start, [WIDTH / 2, HEIGHT / 2]);
   });
-  nextIndex = addBingoHeroLayer(layers, nextIndex, { start: 92, peak: 120, end: 166, color: countdownPalette.goldLight, accent: countdownPalette.pink });
-  const balls = buildCountdownBallBurstLayers(nextIndex, 828, 100, 18);
+  nextIndex = addBingoHeroLayer(layers, nextIndex, { start: 146, peak: 164, end: 178, color: countdownPalette.goldLight, accent: countdownPalette.pink });
+  const balls = buildCountdownBallBurstLayers(nextIndex, 828, 148, 18);
   layers.push(...balls);
   nextIndex += balls.length;
-  const sparks = buildCountdownSparkLayers(nextIndex, 829, 96, 26);
+  const sparks = buildCountdownSparkLayers(nextIndex, 829, 144, 26);
   layers.push(...sparks);
   return makeAnimation("B I N G O Letter Build", layers);
 };
@@ -7978,21 +8073,29 @@ const buildFullscreenBingoLetterBuild = () => {
   const layers = [];
   const center = [WIDTH / 2, HEIGHT / 2];
   const letters = ["B", "I", "N", "G", "O"];
+  const letterWindows = [
+    [0, 26],
+    [30, 56],
+    [60, 86],
+    [90, 116],
+    [120, 146],
+  ];
   letters.forEach((letter, index) => {
-    nextIndex = addCountdownNumberLayer(layers, nextIndex, letter, 8 + index * 14, 48 + index * 14, {
+    const [start, end] = letterWindows[index];
+    nextIndex = addCountdownNumberLayer(layers, nextIndex, letter, start, end, {
       fontSize: letter === "I" ? 380 : 330,
       color: index % 2 === 0 ? countdownPalette.goldLight : countdownPalette.white,
       accent: [countdownPalette.gold, countdownPalette.blue, countdownPalette.pink][index % 3],
       center: [WIDTH / 2, HEIGHT / 2 - 36],
       strokeWidth: 8,
     });
-    nextIndex = addCountdownImpactLayers(layers, nextIndex, 10320 + index, 8 + index * 14, center);
+    nextIndex = addCountdownImpactLayers(layers, nextIndex, 10320 + index, start, center);
   });
-  nextIndex = addBingoHeroLayer(layers, nextIndex, { start: 88, peak: 118, end: 168, color: countdownPalette.goldLight, accent: countdownPalette.pink, fontSize: 286, strokeWidth: 10 });
-  const balls = buildCountdownBallBurstLayers(nextIndex, 10328, 100, 20, [WIDTH / 2, HEIGHT / 2 + 64]);
+  nextIndex = addBingoHeroLayer(layers, nextIndex, { start: 146, peak: 164, end: 178, color: countdownPalette.goldLight, accent: countdownPalette.pink, fontSize: 286, strokeWidth: 10 });
+  const balls = buildCountdownBallBurstLayers(nextIndex, 10328, 148, 20, [WIDTH / 2, HEIGHT / 2 + 64]);
   layers.push(...balls);
   nextIndex += balls.length;
-  const sparks = buildCountdownSparkLayers(nextIndex, 10329, 88, 36, center);
+  const sparks = buildCountdownSparkLayers(nextIndex, 10329, 144, 36, center);
   layers.push(...sparks);
   return makeAnimation("Bingo Letter Build", layers);
 };
@@ -8005,10 +8108,11 @@ const buildGoldenBingoJackpot = () => {
   nextIndex += 1;
   nextIndex = addCountdownImpactLayers(layers, nextIndex, 10341, 24, center);
   nextIndex = addBingoHeroLayer(layers, nextIndex, { start: 58, peak: 96, end: 168, color: countdownPalette.goldLight, accent: countdownPalette.gold, fontSize: 300, strokeWidth: 14 });
-  const goldBalls = buildCountdownBallBurstLayers(nextIndex, 10342, 72, 16, center).map((layer) => ({
-    ...layer,
-    shapes: [bingoBallGroup("Golden Bingo Ball", 50, countdownPalette.gold, 7)],
-  }));
+  const goldBalls = buildCountdownBallBurstLayers(nextIndex, 10342, 72, 16, center, {
+    color: countdownPalette.gold,
+    digit: 7,
+    radius: 50,
+  });
   layers.push(...goldBalls);
   nextIndex += goldBalls.length;
   const beams = buildBeamLayers(nextIndex, { seed: 10343, count: 12, xRange: [240, WIDTH - 240], yBase: HEIGHT * 0.56, palette: [countdownPalette.gold, countdownPalette.goldLight, countdownPalette.white], accentPalette: [countdownPalette.white], widthRange: [26, 54], heightRange: [240, 620], rotationRange: [-70, 70] });
