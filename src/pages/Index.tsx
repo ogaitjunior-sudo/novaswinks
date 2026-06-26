@@ -40,7 +40,7 @@ const floatingParticles = [
 ];
 
 const getFullscreenPreviewSpeed = (_asset: WinkAsset) => 1.35;
-const initialAssetCacheVersion = "bingo-white-letter-disc-20260514";
+const initialAssetCacheVersion = "sound-realistic-mix-20260514";
 
 const withCacheVersion = (url: string, cacheVersion?: string) => {
   if (!cacheVersion) {

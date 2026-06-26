@@ -8,8 +8,16 @@ const FRAME_RATE = 30;
 const DURATION_FRAMES = 180;
 const LAST_FRAME = DURATION_FRAMES - 1;
 const TARGET_WINK_FRAMES = 300;
+const EDGE_FADE_RATIO = 0.1;
+const EDGE_FULL_DISSOLVE_RATIO = 0.02;
+const EDGE_FADE_SAMPLE_STEP = 5;
 
+const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const clampFrame = (value) => Math.max(0, Math.min(LAST_FRAME, value));
+const smoothstep = (value) => {
+  const t = clamp(value);
+  return t * t * (3 - (2 * t));
+};
 
 const rgb = (hex) => {
   const clean = hex.replace("#", "");
@@ -72,6 +80,180 @@ const keyframes = (frames) => {
       };
     }),
   };
+};
+
+const toScalar = (value, fallback = 0) => {
+  if (Array.isArray(value)) {
+    return Number(value[0] ?? fallback);
+  }
+
+  return Number(value ?? fallback);
+};
+
+const toVector = (value, fallback = [WIDTH / 2, HEIGHT / 2, 0]) => {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  return [
+    Number(value[0] ?? fallback[0]),
+    Number(value[1] ?? fallback[1]),
+    Number(value[2] ?? fallback[2] ?? 0),
+  ];
+};
+
+const getAnimatedKeyframes = (property) => (
+  property?.a === 1 &&
+  Array.isArray(property.k) &&
+  property.k.length > 0 &&
+  typeof property.k[0] === "object"
+    ? property.k
+    : null
+);
+
+const sampleProperty = (property, frame, fallback) => {
+  const animated = getAnimatedKeyframes(property);
+  if (!animated) {
+    return property?.k ?? fallback;
+  }
+
+  if (frame <= (animated[0].t ?? 0)) {
+    return animated[0].s ?? animated[0].e ?? fallback;
+  }
+
+  for (let index = 0; index < animated.length - 1; index += 1) {
+    const current = animated[index];
+    const next = animated[index + 1];
+    const currentFrame = current.t ?? 0;
+    const nextFrame = next.t ?? currentFrame;
+    if (frame < currentFrame || frame > nextFrame) continue;
+
+    const start = current.s ?? fallback;
+    const end = current.e ?? next.s ?? start;
+    const t = nextFrame === currentFrame ? 0 : clamp((frame - currentFrame) / (nextFrame - currentFrame));
+
+    if (Array.isArray(start) || Array.isArray(end)) {
+      const startVector = Array.isArray(start) ? start : [Number(start)];
+      const endVector = Array.isArray(end) ? end : [Number(end)];
+      const dimensions = Math.max(startVector.length, endVector.length);
+      return Array.from({ length: dimensions }, (_, dimension) => {
+        const a = Number(startVector[dimension] ?? startVector[0] ?? 0);
+        const b = Number(endVector[dimension] ?? endVector[0] ?? a);
+        return a + ((b - a) * t);
+      });
+    }
+
+    return Number(start ?? 0) + ((Number(end ?? start ?? 0) - Number(start ?? 0)) * t);
+  }
+
+  const last = animated[animated.length - 1];
+  return last.s ?? last.e ?? fallback;
+};
+
+const samplePosition = (layer, frame, compWidth, compHeight) => {
+  if (layer.ks?.p?.s) {
+    return [
+      toScalar(sampleProperty(layer.ks.x, frame, compWidth / 2), compWidth / 2),
+      toScalar(sampleProperty(layer.ks.y, frame, compHeight / 2), compHeight / 2),
+      0,
+    ];
+  }
+
+  return toVector(sampleProperty(layer.ks?.p, frame, [compWidth / 2, compHeight / 2, 0]), [compWidth / 2, compHeight / 2, 0]);
+};
+
+const sampleOpacity = (layer, frame) => toScalar(sampleProperty(layer.ks?.o, frame, 100), 100);
+
+const collectKeyframeTimes = (property) => {
+  const animated = getAnimatedKeyframes(property);
+  return animated ? animated.map((frame) => Number(frame.t ?? 0)) : [];
+};
+
+const getLayerFrameTimes = (layer, compOutFrame) => {
+  const start = Math.max(0, Math.floor(layer.ip ?? 0));
+  const end = Math.max(start + 1, Math.ceil(layer.op ?? compOutFrame));
+  const times = new Set([start, end]);
+
+  for (let frame = start; frame <= end; frame += EDGE_FADE_SAMPLE_STEP) {
+    times.add(frame);
+  }
+
+  for (const frame of collectKeyframeTimes(layer.ks?.o)) times.add(frame);
+  for (const frame of collectKeyframeTimes(layer.ks?.p)) times.add(frame);
+  for (const frame of collectKeyframeTimes(layer.ks?.x)) times.add(frame);
+  for (const frame of collectKeyframeTimes(layer.ks?.y)) times.add(frame);
+
+  return [...times]
+    .filter((frame) => Number.isFinite(frame) && frame >= start && frame <= end)
+    .sort((a, b) => a - b);
+};
+
+const getEdgeFadeAlpha = (x, y, width, height) => {
+  const xDistanceRatio = Math.min(x, width - x) / width;
+  const yDistanceRatio = Math.min(y, height - y) / height;
+  const edgeRatio = Math.min(xDistanceRatio, yDistanceRatio);
+  return smoothstep((edgeRatio - EDGE_FULL_DISSOLVE_RATIO) / (EDGE_FADE_RATIO - EDGE_FULL_DISSOLVE_RATIO));
+};
+
+const applyLayerEdgeFade = (layer, compWidth, compHeight, compOutFrame) => {
+  if (!layer.ks?.p || !layer.ks?.o) return layer;
+
+  const times = getLayerFrameTimes(layer, compOutFrame);
+  const samples = times.map((frame) => {
+    const [x, y] = samplePosition(layer, frame, compWidth, compHeight);
+    const edgeAlpha = getEdgeFadeAlpha(x, y, compWidth, compHeight);
+    const baseOpacity = sampleOpacity(layer, frame);
+    return {
+      t: frame,
+      s: [Math.round(baseOpacity * edgeAlpha * 1000) / 1000],
+      edgeAlpha,
+    };
+  });
+
+  if (samples.every((sample) => sample.edgeAlpha >= 0.995)) {
+    return layer;
+  }
+
+  layer.ks = {
+    ...layer.ks,
+    o: keyframes(samples.map(({ t, s }) => ({ t, s }))),
+  };
+
+  return layer;
+};
+
+const applyLottieEdgeFade = (animation) => {
+  const processLayers = (layers, compWidth, compHeight, compOutFrame) => {
+    if (!Array.isArray(layers)) return layers;
+
+    return layers.map((layer) => {
+      const nextLayer = applyLayerEdgeFade(layer, compWidth, compHeight, compOutFrame);
+      if (Array.isArray(nextLayer.layers)) {
+        nextLayer.layers = processLayers(nextLayer.layers, compWidth, compHeight, compOutFrame);
+      }
+      return nextLayer;
+    });
+  };
+
+  const compWidth = animation.w ?? WIDTH;
+  const compHeight = animation.h ?? HEIGHT;
+  const compOutFrame = animation.op ?? TARGET_WINK_FRAMES;
+  animation.layers = processLayers(animation.layers, compWidth, compHeight, compOutFrame);
+
+  if (Array.isArray(animation.assets)) {
+    animation.assets = animation.assets.map((asset) => {
+      if (!Array.isArray(asset.layers)) return asset;
+      asset.layers = processLayers(asset.layers, asset.w ?? compWidth, asset.h ?? compHeight, compOutFrame);
+      return asset;
+    });
+  }
+
+  animation.meta = {
+    ...(animation.meta ?? {}),
+    gabrielEdgeFade: "edge-alpha-outer-10pct-20260625",
+  };
+
+  return animation;
 };
 
 const transformNode = ({
@@ -11040,7 +11222,7 @@ export const regenerateFullscreenLotties = async (rootDir) => {
     if (effect.source) {
       const sourcePath = path.join(rootDir, effect.source);
       const raw = await fs.readFile(sourcePath, "utf8");
-      const animation = normalizeAnimatedKeyframeHandles(ensureAnimatedOpacitySignal(JSON.parse(raw)));
+      const animation = applyLottieEdgeFade(normalizeAnimatedKeyframeHandles(ensureAnimatedOpacitySignal(JSON.parse(raw))));
       await fs.writeFile(path.join(targetDir, effect.output), `${JSON.stringify(animation)}\n`, "utf8");
       continue;
     }
@@ -11048,7 +11230,7 @@ export const regenerateFullscreenLotties = async (rootDir) => {
     const animation = effect.decorate === false
       ? effect.build()
       : decoratePremiumFullscreenAnimation(effect.build(), effect.output);
-    const winkAnimation = retimeFullscreenWink(animation, TARGET_WINK_FRAMES);
+    const winkAnimation = applyLottieEdgeFade(retimeFullscreenWink(animation, TARGET_WINK_FRAMES));
     await fs.writeFile(path.join(targetDir, effect.output), `${JSON.stringify(winkAnimation)}\n`, "utf8");
   }
 };

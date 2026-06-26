@@ -9,6 +9,8 @@ const FRAME_COUNT = 54;
 const FRAME_DELAY_MS = 58;
 const FRAME_START_OFFSET = 0.02;
 const TAU = Math.PI * 2;
+const EDGE_FADE_RATIO = 0.1;
+const EDGE_FULL_DISSOLVE_RATIO = 0.02;
 
 const crcTable = (() => {
   const table = new Uint32Array(256);
@@ -23,6 +25,10 @@ const crcTable = (() => {
 })();
 
 const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
+const smoothstep = (value) => {
+  const t = clamp(value);
+  return t * t * (3 - (2 * t));
+};
 const mix = (a, b, t) => a + ((b - a) * t);
 const mod01 = (value) => ((value % 1) + 1) % 1;
 const easeOutCubic = (t) => 1 - ((1 - t) ** 3);
@@ -884,6 +890,33 @@ const chunk = (type, data) => {
 
 const compressRgba = (rgba) => zlib.deflateSync(buildScanlines(rgba), { level: 9 });
 
+const getEdgeFadeAlpha = (x, y, width = WIDTH, height = HEIGHT) => {
+  const xDistanceRatio = Math.min(x, width - 1 - x) / width;
+  const yDistanceRatio = Math.min(y, height - 1 - y) / height;
+  const edgeRatio = Math.min(xDistanceRatio, yDistanceRatio);
+  return smoothstep((edgeRatio - EDGE_FULL_DISSOLVE_RATIO) / (EDGE_FADE_RATIO - EDGE_FULL_DISSOLVE_RATIO));
+};
+
+const applyGlobalEdgeFade = (rgba, width = WIDTH, height = HEIGHT) => {
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const edgeAlpha = getEdgeFadeAlpha(x, y, width, height);
+      if (edgeAlpha >= 0.999) continue;
+
+      const index = (y * width + x) * 4;
+      const brightness = 0.68 + (edgeAlpha * 0.32);
+      rgba[index] = Math.round(rgba[index] * brightness);
+      rgba[index + 1] = Math.round(rgba[index + 1] * brightness);
+      rgba[index + 2] = Math.round(rgba[index + 2] * brightness);
+      rgba[index + 3] = Math.round(rgba[index + 3] * edgeAlpha);
+    }
+  }
+
+  return rgba;
+};
+
+const compressRgbaWithEdgeFade = (rgba) => zlib.deflateSync(buildScanlines(applyGlobalEdgeFade(rgba)), { level: 9 });
+
 const buildPng = (rgba) => {
   const parts = [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])];
   const ihdr = Buffer.alloc(13);
@@ -892,7 +925,7 @@ const buildPng = (rgba) => {
   ihdr[8] = 8;
   ihdr[9] = 6;
   parts.push(chunk("IHDR", ihdr));
-  parts.push(chunk("IDAT", compressRgba(rgba)));
+  parts.push(chunk("IDAT", compressRgbaWithEdgeFade(rgba)));
   parts.push(chunk("IEND", Buffer.alloc(0)));
   return Buffer.concat(parts);
 };
@@ -7023,7 +7056,7 @@ export const regenerateChatApngs = async (rootDir, options = {}) => {
       const time = FRAME_COUNT > 1
         ? mix(frameStartOffset, 1, frameIndex / (FRAME_COUNT - 1))
         : 1;
-      return compressRgba(renderEnhancedChatFrame(effect, time, enhancementSeed));
+      return compressRgbaWithEdgeFade(renderEnhancedChatFrame(effect, time, enhancementSeed));
     });
 
     await writeFileWithRetries(path.join(winkDir, effect.output), buildApng(frames));
